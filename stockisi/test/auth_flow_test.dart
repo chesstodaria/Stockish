@@ -8,7 +8,7 @@ import 'package:stockisi/services/session_store.dart';
 
 /// Membuka app dengan backend baru tetapi [store] yang sama, meniru app
 /// ditutup lalu dibuka lagi di perangkat yang sama.
-Future<void> openApp(
+Future<MockBackend> openApp(
   WidgetTester tester,
   SessionStore store, {
   Set<MockArea> failOnce = const {},
@@ -21,6 +21,7 @@ Future<void> openApp(
     repositories: createMockRepositories(backend, sessionStore: store),
   ));
   await tester.pumpAndSettle();
+  return backend;
 }
 
 Finder get nikField => find.widgetWithText(TextFormField, 'NIK');
@@ -114,7 +115,7 @@ void main() {
       await openApp(tester, InMemorySessionStore());
       await login(tester, MockNik.budi, kMockPassword);
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.text('Dikerjakan di Tahap 3').hitTestable(), findsOneWidget);
+      expect(find.text('RCV · Receiving').hitTestable(), findsOneWidget);
       final navigator = tester.state<NavigatorState>(find.byType(Navigator));
       expect(navigator.canPop(), isFalse);
     });
@@ -233,9 +234,9 @@ void main() {
 
     testWidgets('draf gagal diperiksa: tetap bisa logout dengan keterangan',
         (tester) async {
-      await openApp(tester, InMemorySessionStore(),
-          failOnce: {MockArea.drafts});
+      final backend = await openApp(tester, InMemorySessionStore());
       await login(tester, MockNik.budi, kMockPassword);
+      backend.failNext(MockArea.drafts);
       await openProfileAndTapLogout(tester);
       expect(find.textContaining('Draf tidak bisa diperiksa'), findsOneWidget);
       await tester.tap(find.widgetWithText(FilledButton, 'Logout'));

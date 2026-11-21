@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import 'data/repositories/repositories.dart';
 import 'screens/app_routes.dart';
+import 'screens/documents/scanner_screen.dart';
+import 'services/scan_launcher.dart';
 import 'services/session_controller.dart';
 import 'theme/app_theme.dart';
 
@@ -12,7 +14,14 @@ import 'theme/app_theme.dart';
 class StockisiApp extends StatelessWidget {
   final Repositories repositories;
 
-  const StockisiApp({super.key, required this.repositories});
+  /// Cara membuka scanner. Bawaan: kamera ([launchCameraScanner]).
+  final ScanLauncher scanLauncher;
+
+  const StockisiApp({
+    super.key,
+    required this.repositories,
+    this.scanLauncher = launchCameraScanner,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +36,7 @@ class StockisiApp extends StatelessWidget {
         Provider<StockCardRepository>.value(value: repositories.stockCard),
         ChangeNotifierProvider(
             create: (_) => SessionController(repositories.auth)),
+        Provider<ScanLauncher>.value(value: scanLauncher),
       ],
       child: MaterialApp(
         title: 'Stockisi',

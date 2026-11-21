@@ -99,6 +99,9 @@ class MockBackend {
     return Future.delayed(latency * factor);
   }
 
+  /// Membuat panggilan berikutnya ke [area] gagal sekali (untuk test).
+  void failNext(MockArea area) => _failOnce.add(area);
+
   /// Melempar `DataUnavailableException` sekali untuk area yang diminta.
   void maybeFail(MockArea area) {
     if (_failOnce.remove(area)) throw const DataUnavailableException();

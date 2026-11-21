@@ -42,9 +42,13 @@ class DocumentTypeBadge extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: foreground(type)),
           const SizedBox(width: AppSpace.xs),
-          Text(
-            showLabel ? type.label : type.code,
-            style: AppTextStyles.chip.copyWith(color: foreground(type)),
+          Flexible(
+            child: Text(
+              showLabel ? type.label : type.code,
+              style: AppTextStyles.chip.copyWith(color: foreground(type)),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
           ),
         ],
       ),

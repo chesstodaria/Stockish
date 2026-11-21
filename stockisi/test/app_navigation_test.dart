@@ -25,16 +25,18 @@ void main() {
       (tester) async {
     await enterHome(tester);
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.text('Dikerjakan di Tahap 3'), findsOneWidget);
+    expect(find.text('RCV · Receiving'), findsOneWidget);
   });
 
   testWidgets('keempat tab bisa dibuka tanpa error', (tester) async {
     await enterHome(tester);
     final expected = {
-      'Dokumen': 'Tahap 3',
       'Kartu Stok': 'Tahap 4',
       'Riwayat': 'Tahap 5',
     };
+    await tester.tap(tab('Dokumen'));
+    await tester.pumpAndSettle();
+    expect(find.text('RCV · Receiving').hitTestable(), findsOneWidget);
     for (final e in expected.entries) {
       await tester.tap(tab(e.key));
       await tester.pumpAndSettle();
@@ -63,13 +65,6 @@ void main() {
       await tester.tap(find.byTooltip('Kembali').hitTestable());
       await tester.pumpAndSettle();
     }
-
-    await openAndBack('Buka Detail Transaksi (contoh)', 'PO-2611-0041');
-    await openAndBack('Buka Scan QR', 'Scan QR');
-    await back();
-    await openAndBack('Buka Ringkasan Transaksi', 'Ringkasan Transaksi');
-    await back();
-    await back();
 
     await tester.tap(tab('Kartu Stok'));
     await tester.pumpAndSettle();

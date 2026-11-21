@@ -50,7 +50,14 @@ class ItemStatusChip extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: fg),
           const SizedBox(width: AppSpace.xs),
-          Text(status.label, style: AppTextStyles.chip.copyWith(color: fg)),
+          Flexible(
+            child: Text(
+              status.label,
+              style: AppTextStyles.chip.copyWith(color: fg),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
     );

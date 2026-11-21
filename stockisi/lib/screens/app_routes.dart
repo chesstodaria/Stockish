@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'documents/scanner_screen.dart';
 import 'documents/transaction_detail_screen.dart';
 import 'documents/transaction_summary_screen.dart';
+import '../viewmodels/transaction_view_model.dart';
 import 'history/history_detail_screen.dart';
 import 'home_shell.dart';
 import 'login_screen.dart';
@@ -46,8 +47,8 @@ abstract final class AppRoutes {
         protected = const ScannerScreen();
       case transactionDetail when text != null:
         protected = TransactionDetailScreen(documentNumber: text);
-      case transactionSummary when text != null:
-        protected = TransactionSummaryScreen(documentNumber: text);
+      case transactionSummary when arg is TransactionViewModel:
+        protected = TransactionSummaryScreen(viewModel: arg);
       case stockCardDetail when text != null:
         protected = StockCardDetailScreen(itemCode: text);
       case qrLabel when text != null:
