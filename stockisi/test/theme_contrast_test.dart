@@ -26,6 +26,7 @@ void main() {
     'Sudah terpenuhi': (AppColors.fulfilledFg, AppColors.fulfilledBg),
     'error': (AppColors.errorFg, AppColors.errorBg),
     'error di permukaan': (AppColors.error, AppColors.surface),
+    'error di latar (tombol Logout)': (AppColors.error, AppColors.background),
   };
 
   for (final entry in pairs.entries) {

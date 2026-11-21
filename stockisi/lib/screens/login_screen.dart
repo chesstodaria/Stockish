@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../data/repositories/auth_repository.dart';
+import '../data/repository_exceptions.dart';
+import '../services/session_controller.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_dimens.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/inline_error_banner.dart';
 import '../widgets/primary_action_button.dart';
 import '../widgets/stockisi_wordmark.dart';
 import 'app_routes.dart';
 
-/// Placeholder Login. Form NIK dan kata sandi dikerjakan di Tahap 2.
+/// Login dengan NIK dan kata sandi.
 ///
-/// SEMENTARA (Tahap 1): tombol di bawah masuk dengan akun contoh supaya
-/// halaman utama bisa dibuka. Dihapus di Tahap 2.
+/// Kalau gagal, pesan tampil di form dan NIK yang sudah diketik tidak
+/// dihapus (CONTEXT 7, babak Masuk). Kata sandi dikosongkan kalau ditolak,
+/// dan dipertahankan kalau gagalnya karena koneksi.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,19 +25,62 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _loading = false;
+  final _formKey = GlobalKey<FormState>();
+  final _nik = TextEditingController();
+  final _password = TextEditingController();
+  final _passwordFocus = FocusNode();
 
-  Future<void> _enterWithSampleAccount() async {
-    setState(() => _loading = true);
+  bool _obscure = true;
+  bool _loading = false;
+  bool _submitted = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _nik.dispose();
+    _password.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
+
+  void _clearError() {
+    if (_error != null) setState(() => _error = null);
+  }
+
+  Future<void> _submit() async {
+    if (_loading) return;
+    setState(() => _submitted = true);
+    if (!_formKey.currentState!.validate()) return;
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      await context.read<AuthRepository>().login('210457', 'stockisi123');
+      await context.read<SessionController>().login(_nik.text, _password.text);
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-    } catch (e) {
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
+    } on AuthException catch (e) {
       if (!mounted) return;
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      setState(() {
+        _loading = false;
+        _error = e.message;
+        _password.clear();
+        // Kolom sandi sengaja dikosongkan; jangan langsung ditandai
+        // "wajib diisi" di samping pesan penolakan.
+        _submitted = false;
+      });
+      // Fokus setelah kolom aktif lagi di frame berikutnya.
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _passwordFocus.requestFocus());
+    } on RepositoryException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
     }
   }
 
@@ -40,33 +88,102 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Spacer(),
-              const StockisiWordmark(),
-              const SizedBox(height: AppSpace.lg),
-              const Text('Login dengan NIK dan kata sandi.',
-                  style: AppTextStyles.body),
-              const SizedBox(height: AppSpace.sm),
-              const Text(
-                'Form login dikerjakan di Tahap 2. Untuk sementara, '
-                'masuk dengan akun contoh.',
-                style: AppTextStyles.bodySecondary,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpace.xl),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: _submitted
+                      ? AutovalidateMode.onUserInteraction
+                      : AutovalidateMode.disabled,
+                  child: AutofillGroup(child: _buildContent()),
+                ),
               ),
-              const Spacer(),
-              PrimaryActionButton(
-                label: 'Masuk dengan akun contoh',
-                icon: Icons.login_rounded,
-                loading: _loading,
-                onPressed: _enterWithSampleAccount,
-              ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpace.xxl * 2),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: StockisiWordmark(),
+        ),
+        const SizedBox(height: AppSpace.xxl),
+        const Text('Masuk', style: AppTextStyles.headline),
+        const SizedBox(height: AppSpace.xs),
+        const Text(
+          'Gunakan NIK dan kata sandi akun gudang Anda.',
+          style: AppTextStyles.bodySecondary,
+        ),
+        const SizedBox(height: AppSpace.xl),
+        TextFormField(
+          controller: _nik,
+          enabled: !_loading,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.next,
+          autofillHints: const [AutofillHints.username],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: AppTextStyles.body,
+          decoration: const InputDecoration(
+            labelText: 'NIK',
+            prefixIcon: Icon(Icons.badge_outlined),
+          ),
+          onChanged: (_) => _clearError(),
+          onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'NIK wajib diisi.' : null,
+        ),
+        const SizedBox(height: AppSpace.lg),
+        TextFormField(
+          controller: _password,
+          focusNode: _passwordFocus,
+          enabled: !_loading,
+          obscureText: _obscure,
+          textInputAction: TextInputAction.done,
+          autofillHints: const [AutofillHints.password],
+          style: AppTextStyles.body,
+          decoration: InputDecoration(
+            labelText: 'Kata sandi',
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            suffixIcon: IconButton(
+              tooltip:
+                  _obscure ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi',
+              icon: Icon(_obscure
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined),
+              color: AppColors.textSecondary,
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+          onChanged: (_) => _clearError(),
+          onFieldSubmitted: (_) => _submit(),
+          validator: (v) =>
+              (v == null || v.isEmpty) ? 'Kata sandi wajib diisi.' : null,
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: AppSpace.lg),
+          InlineErrorBanner(_error!),
+        ],
+        const Spacer(),
+        const SizedBox(height: AppSpace.xl),
+        PrimaryActionButton(
+          label: 'Masuk',
+          icon: Icons.login_rounded,
+          loading: _loading,
+          onPressed: _submit,
+        ),
+        const SizedBox(height: AppSpace.xl),
+      ],
     );
   }
 }

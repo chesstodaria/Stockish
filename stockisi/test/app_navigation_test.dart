@@ -9,8 +9,11 @@ Future<void> enterHome(WidgetTester tester) async {
   await tester.pumpWidget(
       StockisiApp(repositories: createMockRepositories(backend)));
   await tester.pumpAndSettle();
-  expect(find.text('Masuk dengan akun contoh'), findsOneWidget);
-  await tester.tap(find.text('Masuk dengan akun contoh'));
+  await tester.enterText(
+      find.widgetWithText(TextFormField, 'NIK'), MockNik.budi);
+  await tester.enterText(
+      find.widgetWithText(TextFormField, 'Kata sandi'), kMockPassword);
+  await tester.tap(find.text('Masuk').last);
   await tester.pumpAndSettle();
 }
 
@@ -31,7 +34,6 @@ void main() {
       'Dokumen': 'Tahap 3',
       'Kartu Stok': 'Tahap 4',
       'Riwayat': 'Tahap 5',
-      'Profil': 'Tahap 2',
     };
     for (final e in expected.entries) {
       await tester.tap(tab(e.key));
@@ -40,6 +42,9 @@ void main() {
           findsOneWidget,
           reason: e.key);
     }
+    await tester.tap(tab('Profil'));
+    await tester.pumpAndSettle();
+    expect(find.text('Budi Santoso').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

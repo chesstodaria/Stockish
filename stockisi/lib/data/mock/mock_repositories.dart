@@ -5,14 +5,20 @@ import '../../models/reference_document.dart';
 import '../../models/stock_item.dart';
 import '../../models/stock_movement.dart';
 import '../../models/transaction_record.dart';
+import '../../services/session_store.dart';
 import '../repositories/repositories.dart';
 import '../repository_exceptions.dart';
 import 'mock_backend.dart';
 
 /// Implementasi tiruan semua kontrak repository di atas [MockBackend].
-Repositories createMockRepositories(MockBackend backend) {
+/// Sesi disimpan di [sessionStore] (perangkat), sedangkan data lain hidup di
+/// memori dan kembali ke data awal setiap app dibuka ulang.
+Repositories createMockRepositories(
+  MockBackend backend, {
+  SessionStore? sessionStore,
+}) {
   return Repositories(
-    auth: MockAuthRepository(backend),
+    auth: MockAuthRepository(backend, sessionStore ?? InMemorySessionStore()),
     documents: MockReferenceDocumentRepository(backend),
     drafts: MockDraftRepository(backend),
     transactions: MockTransactionRepository(backend),
@@ -22,7 +28,8 @@ Repositories createMockRepositories(MockBackend backend) {
 
 class MockAuthRepository implements AuthRepository {
   final MockBackend _b;
-  MockAuthRepository(this._b);
+  final SessionStore _session;
+  MockAuthRepository(this._b, this._session);
 
   @override
   Future<OperatorProfile> login(String nik, String password) async {
@@ -35,6 +42,7 @@ class MockAuthRepository implements AuthRepository {
     if (!account.profile.isActive) {
       throw const AuthException(AuthFailure.inactiveAccount);
     }
+    await _session.writeNik(account.profile.nik);
     _b.currentOperator = account.profile;
     return account.profile;
   }
@@ -42,12 +50,22 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<OperatorProfile?> restoreSession() async {
     await _b.delay(0.5);
-    return _b.currentOperator;
+    final nik = await _session.readNik();
+    final account = nik == null ? null : _b.accounts[nik];
+    // Akun yang sudah dihapus atau dinonaktifkan tidak boleh dipulihkan.
+    if (account == null || !account.profile.isActive) {
+      if (nik != null) await _session.clear();
+      _b.currentOperator = null;
+      return null;
+    }
+    _b.currentOperator = account.profile;
+    return account.profile;
   }
 
   @override
   Future<void> logout() async {
     await _b.delay(0.5);
+    await _session.clear();
     _b.currentOperator = null;
   }
 }
