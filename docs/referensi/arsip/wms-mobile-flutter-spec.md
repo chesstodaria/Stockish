@@ -1,3 +1,23 @@
+> # ⚠ ARSIP — TIDAK NORMATIF
+>
+> Dokumen ini **bukan acuan** untuk proyek Stockisi. Disimpan hanya sebagai
+> riwayat dan bahan pertimbangan.
+>
+> Isinya sering **bertentangan** dengan keputusan kelompok yang berlaku:
+>
+> | Topik | Dokumen ini | Yang berlaku (`docs/CONTEXT.md`) |
+> | :--- | :--- | :--- |
+> | Status dokumen | 4 status: available / locked / completed / partial | 2 status: OPEN / SUBMITTED (§6) |
+> | Kunci dokumen | 15 menit + reclaim + timer | tidak dibawa (§4.3) |
+> | Audit log, push queue, sync ERP | ada | tidak dibawa (§4.3) |
+> | Isi QR | 4 field | 3 field `kode\|satuan\|gudang` (§6) |
+> | Kategori mutasi | 4 | 2: Receiving dan Intransit (§4.1) |
+> | Kuantitas | `REAL` (desimal) | `int` (bulat) |
+> | Sesi tunggal per NIK | dicek ke server | tidak dibawa (§4.3) |
+>
+> Kalau ada yang mengutip dokumen ini sebagai spesifikasi, arahkan ke
+> `docs/CONTEXT.md`.
+
 # Spesifikasi Arsitektur & Fungsional WMS Mobile StockFlow (Flutter/Dart)
 
 Dokumen ini merupakan spesifikasi teknis dan operasional lengkap untuk pembangunan aplikasi **WMS (Warehouse Management System) Mobile** berbasis **Flutter / Dart**. Seluruh kebutuhan, aturan bisnis, skema data, dan alur kerja diikhtisarkan secara komprehensif dari proyek *Audit Trail StockFlow* dan disesuaikan untuk implementasi *pure mobile client-side* (tanpa ketergantungan backend/full-stack, berbasis *local database* / *mock service layer*).

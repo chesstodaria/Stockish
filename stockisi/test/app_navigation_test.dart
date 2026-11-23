@@ -30,20 +30,19 @@ void main() {
 
   testWidgets('keempat tab bisa dibuka tanpa error', (tester) async {
     await enterHome(tester);
-    final expected = {
-      'Kartu Stok': 'Tahap 4',
-      'Riwayat': 'Tahap 5',
-    };
+
     await tester.tap(tab('Dokumen'));
     await tester.pumpAndSettle();
     expect(find.text('RCV · Receiving').hitTestable(), findsOneWidget);
-    for (final e in expected.entries) {
-      await tester.tap(tab(e.key));
-      await tester.pumpAndSettle();
-      expect(find.text('Dikerjakan di ${e.value}').hitTestable(),
-          findsOneWidget,
-          reason: e.key);
-    }
+
+    await tester.tap(tab('Kartu Stok'));
+    await tester.pumpAndSettle();
+    expect(find.text('BRG-0001').hitTestable(), findsOneWidget);
+
+    await tester.tap(tab('Riwayat'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('TRX-').hitTestable(), findsWidgets);
+
     await tester.tap(tab('Profil'));
     await tester.pumpAndSettle();
     expect(find.text('Budi Santoso').hitTestable(), findsOneWidget);
@@ -52,12 +51,6 @@ void main() {
 
   testWidgets('routing ke layar turunan setiap tab', (tester) async {
     await enterHome(tester);
-
-    Future<void> openAndBack(String link, String title) async {
-      await tester.tap(find.text(link).hitTestable());
-      await tester.pumpAndSettle();
-      expect(find.text(title), findsOneWidget, reason: link);
-    }
 
     // Tooltip tombol kembali sudah berbahasa Indonesia ("Kembali"), jadi
     // tester.pageBack() (mencari tooltip "Back") tidak dipakai.
@@ -68,14 +61,21 @@ void main() {
 
     await tester.tap(tab('Kartu Stok'));
     await tester.pumpAndSettle();
-    await openAndBack('Buka Detail Kartu Stok (contoh)', 'BRG-0001');
-    await openAndBack('Buka Label QR', 'Label QR BRG-0001');
+    await tester.tap(find.text('BRG-0001').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Riwayat mutasi').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('Label QR').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('BRG-0001|').hitTestable(), findsOneWidget);
     await back();
     await back();
 
     await tester.tap(tab('Riwayat'));
     await tester.pumpAndSettle();
-    await openAndBack('Buka Detail Riwayat (contoh)', 'TRX-RCV-261007-0001');
+    await tester.tap(find.byType(Card).hitTestable().first);
+    await tester.pumpAndSettle();
+    expect(find.text('Detail Riwayat').hitTestable(), findsOneWidget);
     await back();
     expect(tester.takeException(), isNull);
   });

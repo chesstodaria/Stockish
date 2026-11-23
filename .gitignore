@@ -1,5 +1,11 @@
-CLAUDE.md
-docs/CONTEXT.md
-docs/PLAN.md
-docs/PROGRESS.md
-docs/referensi/
+# Artefak lokal, bukan bagian proyek.
+*.log
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Catatan: dokumen di docs/ SENGAJA tidak di-ignore. Repo ini proyek
+# kelompok, jadi CONTEXT/PLAN/PROGRESS/PENGEMBANGAN-UI dan laporan di
+# docs/referensi/ harus bisa dibaca semua anggota.
+# Folder stockish/ dan stockisi/ punya .gitignore Flutter masing-masing.
