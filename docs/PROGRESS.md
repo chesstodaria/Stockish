@@ -548,6 +548,11 @@ Sheet (tambah jumlah, input manual, aksi item), Splash, Detail Kartu Stok,
 Label QR, Detail Riwayat, dan penyeragaman state kosong/gagal/memuat.
 Seluruhnya masih berfungsi, hanya belum memakai bahasa desain baru.
 
+Catatan 2026-11-24: Detail Kartu Stok dan Detail Riwayat sudah diselaraskan
+pada judul bagiannya (`SectionHeader`), dan seluruh layar turunan otomatis
+mewarisi tema baru (sudut, warna, tipografi, tinggi tombol). Yang benar-benar
+belum digambar ulang tinggal sheet, Splash, dan Label QR.
+
 ## Keputusan teknis
 
 - Logo: wordmark teks "Stockisi" + ikon `inventory_2` di kotak navy (`StockisiWordmark`). Ikon launcher tetap bawaan Flutter. Diganti kalau logo resmi ada.

@@ -11,6 +11,7 @@ import '../../theme/app_dimens.dart';
 import '../../theme/app_text_styles.dart';
 import '../../viewmodels/stock_card_detail_view_model.dart';
 import '../../widgets/document_type_badge.dart';
+import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
 import '../app_routes.dart';
 
@@ -84,18 +85,9 @@ class _StockCardDetailView extends StatelessWidget {
       children: [
         _ItemHeader(item: item),
         const SizedBox(height: AppSpace.xl),
-        Row(
-          children: [
-            Text('Riwayat mutasi', style: AppTextStyles.title),
-            const SizedBox(width: AppSpace.sm),
-            Expanded(
-              child: Text(
-                movements.isEmpty ? '' : '${movements.length} catatan',
-                style: AppTextStyles.bodySecondary,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+        SectionHeader(
+          'Riwayat mutasi',
+          trailing: movements.isEmpty ? null : '${movements.length}',
         ),
         const SizedBox(height: AppSpace.md),
         if (movements.isEmpty)

@@ -63,7 +63,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('BRG-0001').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('Riwayat mutasi').hitTestable(), findsOneWidget);
+    expect(find.textContaining('RIWAYAT MUTASI').hitTestable(), findsOneWidget);
 
     await tester.tap(find.text('Label QR').hitTestable());
     await tester.pumpAndSettle();

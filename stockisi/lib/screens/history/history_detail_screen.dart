@@ -9,6 +9,7 @@ import '../../theme/app_dimens.dart';
 import '../../theme/app_text_styles.dart';
 import '../../viewmodels/history_detail_view_model.dart';
 import '../../widgets/document_type_badge.dart';
+import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
 
 /// Detail Riwayat Transaksi (layar 12): header transaksi dan tabel item.
@@ -167,26 +168,11 @@ class _ItemTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shown = lines.where((l) => !l.markedUnavailable).length;
-    final unavailable = lines.length - shown;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text('Item', style: AppTextStyles.title),
-            const SizedBox(width: AppSpace.sm),
-            Expanded(
-              child: Text(
-                unavailable == 0
-                    ? '$shown item'
-                    : '$shown item, $unavailable tidak tersedia',
-                style: AppTextStyles.bodySecondary,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+        SectionHeader('Item', trailing: '$shown'),
         const SizedBox(height: AppSpace.md),
         Card(
           child: Column(
