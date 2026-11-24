@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stockisi/data/mock/mock_seed.dart';
 import 'package:stockisi/services/scan_launcher.dart';
-import 'package:stockisi/widgets/item_status_chip.dart';
+import 'package:stockisi/widgets/status_chip.dart';
 import 'package:stockisi/widgets/transaction_item_card.dart';
 
 import 'helpers.dart';
@@ -13,7 +13,7 @@ Finder cardOf(String itemName) => find.ancestor(
 Finder chipIn(String itemName, String label) => find.descendant(
     of: cardOf(itemName),
     matching: find.descendant(
-        of: find.byType(ItemStatusChip), matching: find.text(label)));
+        of: find.byType(StatusChip), matching: find.text(label)));
 
 const plat = 'Plat Besi SPCC 1,2 mm 4x8 ft';
 const gerinda = 'Mata Gerinda Potong 4 inci';
@@ -29,7 +29,7 @@ void main() {
     await openDocument(tester, MockDoc.rcvNew);
     expect(find.text('0 dari 4'), findsOneWidget);
     expect(find.text('Scan QR'), findsOneWidget);
-    expect(chipIn(plat, 'Pending'), findsOneWidget);
+    expect(chipIn(plat, 'Belum'), findsOneWidget);
   });
 
   testWidgets('scan valid lalu tambah jumlah', (tester) async {
@@ -42,7 +42,7 @@ void main() {
     await tester.enterText(find.byType(TextField), '25');
     await tapAndSettle(tester, find.text('Tambah'));
     expect(find.textContaining('+25 LBR'), findsOneWidget);
-    expect(chipIn(plat, 'Partial'), findsOneWidget);
+    expect(chipIn(plat, 'Parsial'), findsOneWidget);
     expect(find.text('1 dari 4'), findsOneWidget);
   });
 
@@ -88,7 +88,7 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextField, 'Jumlah diterima (ditambahkan)'), '40');
     await tapAndSettle(tester, find.text('Tambah'));
-    expect(chipIn('Pipa Hollow 40x40x2 mm 6 m', 'Complete'), findsOneWidget);
+    expect(chipIn('Pipa Hollow 40x40x2 mm 6 m', 'Selesai'), findsOneWidget);
   });
 
   testWidgets('input manual: kode tidak ada di dokumen', (tester) async {
@@ -109,13 +109,13 @@ void main() {
     await openDocument(tester, MockDoc.rcvNew);
     await tapAndSettle(tester, cardOf(gerinda));
     await tapAndSettle(tester, find.text('Tandai tidak tersedia'));
-    expect(chipIn(gerinda, 'Partial'), findsOneWidget);
+    expect(chipIn(gerinda, 'Parsial'), findsOneWidget);
     expect(find.descendant(
         of: cardOf(gerinda), matching: find.text('Tidak tersedia')),
         findsOneWidget);
     await tapAndSettle(tester, cardOf(gerinda));
     await tapAndSettle(tester, find.text('Batalkan tanda Tidak tersedia'));
-    expect(chipIn(gerinda, 'Pending'), findsOneWidget);
+    expect(chipIn(gerinda, 'Belum'), findsOneWidget);
   });
 
   testWidgets('ubah jumlah mengganti, hapus input kembali Pending',
@@ -125,10 +125,10 @@ void main() {
     await tapAndSettle(tester, cardOf(plat));
     await tester.enterText(find.byType(TextField), '60');
     await tapAndSettle(tester, find.text('Simpan jumlah'));
-    expect(chipIn(plat, 'Complete'), findsOneWidget);
+    expect(chipIn(plat, 'Selesai'), findsOneWidget);
     await tapAndSettle(tester, cardOf(plat));
     await tapAndSettle(tester, find.text('Hapus input'));
-    expect(chipIn(plat, 'Pending'), findsOneWidget);
+    expect(chipIn(plat, 'Belum'), findsOneWidget);
   });
 
   testWidgets('kembali tanpa input tidak bertanya', (tester) async {
@@ -158,7 +158,7 @@ void main() {
 
     await openDocument(tester, MockDoc.rcvNew);
     expect(find.text('Melanjutkan draf ${MockDoc.rcvNew}.'), findsOneWidget);
-    expect(chipIn(gerinda, 'Partial'), findsOneWidget);
+    expect(chipIn(gerinda, 'Parsial'), findsOneWidget);
     // Tanpa perubahan baru, kembali tidak bertanya lagi.
     await tapKembali(tester);
     expect(find.text('Keluar dari dokumen?'), findsNothing);

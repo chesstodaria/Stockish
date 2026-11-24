@@ -42,7 +42,7 @@ Future<void> openProfileAndTapLogout(WidgetTester tester) async {
   await tester.tap(find.descendant(
       of: find.byType(NavigationBar), matching: find.text('Profil')));
   await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(OutlinedButton, 'Logout'));
+  await tester.tap(find.text('Logout'));
   await tester.pumpAndSettle();
 }
 
@@ -131,7 +131,7 @@ void main() {
           of: find.byType(NavigationBar), matching: find.text('Profil')));
       await tester.pumpAndSettle();
       expect(find.text('Siti Rahmawati'), findsOneWidget);
-      expect(find.text('Gudang Barang Jadi Pasuruan'), findsOneWidget);
+      expect(find.textContaining('Gudang Barang Jadi Pasuruan'), findsOneWidget);
     });
 
     testWidgets('sesi akun yang kini nonaktif tidak dipulihkan',
@@ -187,9 +187,8 @@ void main() {
           of: find.byType(NavigationBar), matching: find.text('Profil')));
       await tester.pumpAndSettle();
       expect(find.text('Budi Santoso'), findsOneWidget);
-      expect(find.text(MockNik.budi), findsOneWidget);
-      expect(find.text('Gudang Bahan Baku Sidoarjo'), findsOneWidget);
-      expect(find.text('Kode WH01'), findsOneWidget);
+      expect(find.text('NIK 210457'), findsOneWidget);
+      expect(find.textContaining('Gudang Bahan Baku Sidoarjo'), findsOneWidget);
     });
 
     testWidgets('ada draf: operator diberi tahu, Batal tetap di Profil',

@@ -142,7 +142,7 @@ class _SummaryViewState extends State<_SummaryView> {
           );
         }
         return AlertDialog(
-          title: Text('Ada $partial item Partial'),
+          title: Text('Ada $partial item Parsial'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -172,21 +172,23 @@ class _SummaryViewState extends State<_SummaryView> {
           ),
           actionsOverflowDirection: VerticalDirection.up,
           actionsOverflowButtonSpacing: AppSpace.sm,
+          // Pilihan yang masih bisa dilanjutkan diberi bobot utama; pilihan
+          // yang menutup dokumen tampil sebagai alternatif.
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Batal'),
             ),
             OutlinedButton(
-              onPressed: () => Navigator.of(ctx).pop(_Choice.keepOpen),
-              child: const Text('Simpan sebagai Partial'),
+              onPressed: () => Navigator.of(ctx).pop(_Choice.close),
+              child: const Text('Tandai Selesai'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                   minimumSize:
                       const Size(AppSize.minTouch * 2, AppSize.minTouch)),
-              onPressed: () => Navigator.of(ctx).pop(_Choice.close),
-              child: const Text('Tandai Selesai'),
+              onPressed: () => Navigator.of(ctx).pop(_Choice.keepOpen),
+              child: const Text('Simpan sebagai Partial'),
             ),
           ],
         );

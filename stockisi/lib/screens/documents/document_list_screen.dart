@@ -5,16 +5,22 @@ import '../../data/repositories/draft_repository.dart';
 import '../../data/repositories/reference_document_repository.dart';
 import '../../models/document_type.dart';
 import '../../models/reference_document.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
-import '../../theme/app_text_styles.dart';
 import '../../viewmodels/document_list_view_model.dart';
+import '../../widgets/app_header.dart';
+import '../../widgets/app_search_field.dart';
+import '../../widgets/app_segmented.dart';
 import '../../widgets/document_card.dart';
-import '../../widgets/document_type_badge.dart';
+import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
 import '../app_routes.dart';
 
 /// Tab Dokumen: Daftar Dokumen Referensi (layar 4).
+///
+/// Hanya dua kontrol di atas daftar, yaitu segmen RCV/INT dan kolom
+/// pencarian. Filter status tidak lagi berupa chip terpisah; sebagai
+/// gantinya dokumen dikelompokkan menjadi "Perlu diproses" dan "Selesai",
+/// sehingga operator langsung tahu mana yang harus dikerjakan.
 class DocumentListScreen extends StatelessWidget {
   const DocumentListScreen({super.key});
 
@@ -24,7 +30,9 @@ class DocumentListScreen extends StatelessWidget {
       create: (ctx) => DocumentListViewModel(
         ctx.read<ReferenceDocumentRepository>(),
         ctx.read<DraftRepository>(),
-      )..load(),
+      )
+        ..setFilter(DocumentStatusFilter.all)
+        ..load(),
       child: const _DocumentListView(),
     );
   }
@@ -59,11 +67,10 @@ class _DocumentListViewState extends State<_DocumentListView> {
     }
     await Navigator.of(context)
         .pushNamed(AppRoutes.transactionDetail, arguments: doc.number);
-    // Status, progres, dan penanda draf bisa berubah setelah dari detail.
     await vm.load(silent: true);
   }
 
-  void _resetFilters(DocumentListViewModel vm) {
+  void _reset(DocumentListViewModel vm) {
     _search.clear();
     vm.resetFilters();
   }
@@ -71,42 +78,41 @@ class _DocumentListViewState extends State<_DocumentListView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<DocumentListViewModel>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dokumen')),
-      body: Column(
+    return SafeArea(
+      bottom: false,
+      child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpace.screen, 0, AppSpace.screen, AppSpace.sm),
+                AppSpace.screen, AppSpace.md, AppSpace.screen, 0),
             child: Column(
               children: [
-                _TypeSegment(type: vm.type, onChanged: vm.setType),
-                const SizedBox(height: AppSpace.md),
-                TextField(
+                const AppHeader(title: 'Dokumen'),
+                const SizedBox(height: AppSpace.lg),
+                AppSearchField(
                   controller: _search,
+                  hint: 'Cari nomor dokumen atau '
+                      '${vm.type == DocumentType.receiving ? 'vendor' : 'tujuan'}',
                   onChanged: vm.setQuery,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: 'Cari nomor dokumen atau '
-                        '${vm.type == DocumentType.receiving ? 'vendor' : 'tujuan'}',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: vm.query.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: 'Hapus pencarian',
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () {
-                              _search.clear();
-                              vm.setQuery('');
-                            },
-                          ),
-                  ),
+                  showClear: vm.query.isNotEmpty,
+                  onClear: () {
+                    _search.clear();
+                    vm.setQuery('');
+                  },
                 ),
-                const SizedBox(height: AppSpace.sm),
-                _StatusFilterRow(value: vm.filter, onChanged: vm.setFilter),
+                const SizedBox(height: AppSpace.md),
+                AppSegmented<DocumentType>(
+                  value: vm.type,
+                  onChanged: vm.setType,
+                  segments: [
+                    for (final t in DocumentType.values)
+                      AppSegment(t, '${t.code} · ${t.label}'),
+                  ],
+                ),
               ],
             ),
           ),
+          const SizedBox(height: AppSpace.md),
           Expanded(child: _buildBody(vm)),
         ],
       ),
@@ -119,7 +125,11 @@ class _DocumentListViewState extends State<_DocumentListView> {
       return const LoadingView(message: 'Memuat dokumen...');
     }
     if (vm.error != null && all == null) {
-      return ErrorView(message: vm.error!, onRetry: vm.load);
+      return ErrorView(
+        message: vm.error!,
+        title: 'Gagal memuat dokumen',
+        onRetry: vm.load,
+      );
     }
     if (all == null) return const SizedBox.shrink();
 
@@ -145,101 +155,50 @@ class _DocumentListViewState extends State<_DocumentListView> {
       return EmptyView(
         icon: Icons.search_off_rounded,
         title: 'Tidak ada dokumen yang cocok',
-        message: vm.filter == DocumentStatusFilter.open && vm.query.isEmpty
-            ? 'Semua dokumen $code sudah selesai.'
-            : 'Coba kata kunci lain atau ubah filter status.',
-        actionLabel: 'Tampilkan semua dokumen',
-        onAction: () => _resetFilters(vm),
+        message: 'Coba kata kunci lain.',
+        actionLabel: 'Hapus pencarian',
+        onAction: () => _reset(vm),
       );
     }
 
+    final open = docs.where((d) => d.isOpen).toList();
+    final done = docs.where((d) => !d.isOpen).toList();
+
     return RefreshIndicator(
       onRefresh: () => vm.load(silent: true),
-      child: ListView.separated(
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(
-            AppSpace.screen, AppSpace.sm, AppSpace.screen, AppSpace.xl),
-        itemCount: docs.length,
-        separatorBuilder: (_, _) => const SizedBox(height: AppSpace.md),
-        itemBuilder: (_, i) => DocumentCard(
-          document: docs[i],
-          hasDraft: vm.hasDraft(docs[i].number),
-          onTap: () => _open(docs[i]),
+          AppSpace.screen,
+          0,
+          AppSpace.screen,
+          AppSpace.xl,
         ),
-      ),
-    );
-  }
-}
-
-class _TypeSegment extends StatelessWidget {
-  final DocumentType type;
-  final ValueChanged<DocumentType> onChanged;
-
-  const _TypeSegment({required this.type, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: SegmentedButton<DocumentType>(
-        showSelectedIcon: false,
-        segments: [
-          for (final t in DocumentType.values)
-            ButtonSegment(
-              value: t,
-              icon: Icon(t == DocumentType.receiving
-                  ? Icons.south_west_rounded
-                  : Icons.north_east_rounded),
-              label: Text('${t.code} · ${t.label}'),
-            ),
-        ],
-        selected: {type},
-        onSelectionChanged: (s) => onChanged(s.first),
-        style: ButtonStyle(
-          minimumSize:
-              const WidgetStatePropertyAll(Size.fromHeight(AppSize.minTouch)),
-          textStyle: const WidgetStatePropertyAll(AppTextStyles.label),
-          side: const WidgetStatePropertyAll(
-              BorderSide(color: AppColors.border)),
-          backgroundColor: WidgetStateProperty.resolveWith((s) =>
-              s.contains(WidgetState.selected)
-                  ? DocumentTypeBadge.background(type)
-                  : AppColors.surface),
-          foregroundColor: WidgetStateProperty.resolveWith((s) =>
-              s.contains(WidgetState.selected)
-                  ? DocumentTypeBadge.foreground(type)
-                  : AppColors.textSecondary),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusFilterRow extends StatelessWidget {
-  final DocumentStatusFilter value;
-  final ValueChanged<DocumentStatusFilter> onChanged;
-
-  const _StatusFilterRow({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: Wrap(
-        spacing: AppSpace.sm,
         children: [
-          for (final f in DocumentStatusFilter.values)
-            ChoiceChip(
-              label: Text(f.label),
-              selected: value == f,
-              onSelected: (_) => onChanged(f),
-              labelStyle: AppTextStyles.label.copyWith(
-                color: value == f ? AppColors.onNavy : AppColors.textPrimary,
+          if (open.isNotEmpty) ...[
+            SectionHeader('Perlu diproses', trailing: '${open.length}'),
+            const SizedBox(height: AppSpace.sm),
+            for (var i = 0; i < open.length; i++) ...[
+              if (i > 0) const SizedBox(height: AppSpace.sm + 2),
+              DocumentCard(
+                document: open[i],
+                hasDraft: vm.hasDraft(open[i].number),
+                onTap: () => _open(open[i]),
               ),
-              selectedColor: AppColors.navy,
-              backgroundColor: AppColors.surface,
-              checkmarkColor: AppColors.onNavy,
-              side: const BorderSide(color: AppColors.border),
-            ),
+            ],
+          ],
+          if (done.isNotEmpty) ...[
+            if (open.isNotEmpty) const SizedBox(height: AppSpace.xl),
+            SectionHeader('Selesai', trailing: '${done.length}'),
+            const SizedBox(height: AppSpace.sm),
+            for (var i = 0; i < done.length; i++) ...[
+              if (i > 0) const SizedBox(height: AppSpace.sm + 2),
+              DocumentCard(
+                document: done[i],
+                hasDraft: false,
+                onTap: () => _open(done[i]),
+              ),
+            ],
+          ],
         ],
       ),
     );

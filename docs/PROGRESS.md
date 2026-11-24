@@ -479,6 +479,75 @@ Layar 11 dan 12 Tabel 2.1.
 
 **Yang belum diverifikasi lewat tangkapan layar:** Detail Kartu Stok, Label QR, Riwayat, dan Detail Riwayat hanya diperiksa lewat widget test. Jendela browser tidak lagi bisa diambil tangkapan layarnya selama sesi ini. Perlu dicek manual sekali sebelum presentasi; langkahnya ada di `docs/DEMO.md`.
 
+## Desain ulang antarmuka (2026-11-24)
+
+Perbaikan tampilan dikerjakan berdasarkan 12 frame rancangan di Figma
+(`https://www.figma.com/design/gsIOOv8ip5yEoDjrgUuUcL`) dan panduan gerak
+Apple. Tidak ada perubahan pada alur, aturan bisnis, atau cakupan.
+
+### Fondasi
+
+- `theme/motion.dart` baru: durasi 120/180/280/420 ms, kurva masuk `easeOutCubic`,
+  dan pembaca `MediaQuery.disableAnimations` supaya gerak dikurangi dihormati.
+- `theme/app_colors.dart`: tambah `navIndicator` (#E8EAEF). Indikator tab
+  sebelumnya memakai `surfaceMuted` dengan kontras ~1,09:1 sehingga tab aktif
+  tidak terlihat.
+- `theme/app_dimens.dart`: tambah `AppRadius.xl` (20) untuk dialog dan sheet.
+- `theme/app_theme.dart`: kolom isian jadi muted tanpa garis (gaya `UISearchBar`),
+  dialog/sheet bersudut 20, riak Material dimatikan (`NoSplash`), indikator tab
+  memakai `navIndicator`.
+- `screens/app_routes.dart`: `MaterialPageRoute` diganti `CupertinoPageRoute`.
+  `CupertinoPageTransitionsBuilder` tidak lagi tersedia di Flutter 3.44, jadi
+  rutenya dipakai langsung. Efeknya: geser horizontal ala iOS dan gestur kembali
+  dari tepi kiri.
+
+### Komponen bersama
+
+Sepuluh widget baru di `lib/widgets/`: `app_pill`, `status_chip`, `type_pill`,
+`section_header`, `app_search_field`, `app_segmented`, `grouped_list`,
+`app_header`, `app_field`, `pressable`. Tiga implementasi pill yang dulu
+terpisah (`_Tag`, `ItemStatusChip`, `DocumentTypeBadge`) kini memakai satu
+`AppPill`; dua nama lama dipertahankan sebagai pembungkus agar pemanggil lama
+tetap jalan.
+
+### Perubahan per layar
+
+- `home_shell.dart`: `IndexedStack` memakai `StackFit.expand`. Wajib, karena
+  tab tidak lagi punya `Scaffold` sendiri sehingga `Expanded` di dalamnya
+  membutuhkan tinggi terbatas.
+- Empat layar tab: tanpa `Scaffold` dan `AppBar`, memakai `AppHeader` berisi
+  judul dan chip konteks `WH01 · Budi`.
+- Daftar Dokumen: dua kelompok "Perlu diproses" dan "Selesai"; hanya dua
+  kontrol (segmen dan pencarian); kartu OPEN bergaris aksen sesuai jenis
+  (mint RCV, peach INT), SUBMITTED redup tanpa garis.
+- Kartu Stok, Riwayat, Profil, Detail Riwayat: daftar bergaya *inset grouped*.
+  Riwayat dikelompokkan per bulan.
+- Detail Transaksi: app bar memuat nama vendor, kartu item menampilkan chip
+  status dan angka diinput berwarna status.
+- Dialog Partial: pilihan "Simpan sebagai Partial" menjadi tombol utama karena
+  masih bisa dilanjutkan, "Tandai Selesai" menjadi alternatif.
+- Login: isi dipusatkan vertikal, isian putih bergaris.
+
+### Keputusan label status
+
+Label berbahasa Indonesia: `pending('Belum')`, `partial('Parsial')`,
+`complete('Selesai')`. Ini mengganti `Pending/Partial/Complete` yang berbahasa
+Inggris, agar seragam dengan seluruh antarmuka yang sudah berbahasa Indonesia.
+Perubahan menyentuh `lib/data/transaction_rules.dart` (hanya string label).
+
+### Dampak ke pengujian
+
+127 test tetap lulus tanpa ada yang dihapus. Yang disesuaikan hanya finder dan
+ekspektasi: `find.text` pada teks kartu yang berubah, `Card` yang kembali
+dipakai, `StatusChip` menggantikan `ItemStatusChip`, dan dokumen SUBMITTED yang
+kini tetap tampil di kelompok "Selesai" sehingga tidak lagi `findsNothing`.
+
+### Yang belum dikerjakan
+
+Sheet (tambah jumlah, input manual, aksi item), Splash, Detail Kartu Stok,
+Label QR, Detail Riwayat, dan penyeragaman state kosong/gagal/memuat.
+Seluruhnya masih berfungsi, hanya belum memakai bahasa desain baru.
+
 ## Keputusan teknis
 
 - Logo: wordmark teks "Stockisi" + ikon `inventory_2` di kotak navy (`StockisiWordmark`). Ikon launcher tetap bawaan Flutter. Diganti kalau logo resmi ada.

@@ -11,14 +11,14 @@ import '../models/reference_document.dart';
 /// Status item, dihitung dari input dan tidak disimpan terpisah.
 enum ItemStatus {
   /// Belum diperiksa: belum ada input dan belum ditandai "Tidak tersedia".
-  pending('Pending'),
+  pending('Belum'),
 
   /// Input lebih dari 0 tetapi kurang dari sisa, atau ditandai
   /// "Tidak tersedia".
-  partial('Partial'),
+  partial('Parsial'),
 
   /// Input sama dengan sisa.
-  complete('Complete'),
+  complete('Selesai'),
 
   /// Sisa sudah 0 sejak awal (terpenuhi di transaksi Partial sebelumnya).
   /// Tidak ikut dihitung dan tidak bisa diinput.

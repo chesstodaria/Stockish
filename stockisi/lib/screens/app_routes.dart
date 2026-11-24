@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import 'documents/scanner_screen.dart';
@@ -61,6 +62,10 @@ abstract final class AppRoutes {
         (protected != null
             ? SessionGuard(redirectTo: login, child: protected)
             : const RestartFromSplash(splashRoute: splash));
-    return MaterialPageRoute(builder: (_) => page, settings: settings);
+    // Transisi halaman ala iOS: masuk dari kanan, keluar ke kanan, dan bisa
+    // dibatalkan dengan geser dari tepi kiri. `CupertinoPageRoute` dipakai
+    // langsung karena `CupertinoPageTransitionsBuilder` tidak lagi tersedia
+    // di Flutter 3.44.
+    return CupertinoPageRoute(builder: (_) => page, settings: settings);
   }
 }

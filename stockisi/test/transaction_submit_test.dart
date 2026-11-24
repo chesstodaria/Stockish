@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stockisi/data/mock/mock_backend.dart';
 import 'package:stockisi/data/mock/mock_seed.dart';
 import 'package:stockisi/models/document_type.dart';
-import 'package:stockisi/widgets/item_status_chip.dart';
+import 'package:stockisi/widgets/status_chip.dart';
 import 'package:stockisi/widgets/transaction_item_card.dart';
 
 import 'helpers.dart';
@@ -14,7 +14,7 @@ Finder cardOf(String itemName) => find.ancestor(
 Finder chipIn(String itemName, String label) => find.descendant(
     of: cardOf(itemName),
     matching: find.descendant(
-        of: find.byType(ItemStatusChip), matching: find.text(label)));
+        of: find.byType(StatusChip), matching: find.text(label)));
 
 Future<void> manualAdd(WidgetTester tester, String code, int qty) async {
   await tapAndSettle(tester, find.text('Input manual'));
@@ -75,7 +75,12 @@ void main() {
     await tapAndSettle(tester, find.text('Kembali ke daftar dokumen'));
 
     expect(find.text('RCV · Receiving'), findsOneWidget);
-    expect(find.text(MockDoc.rcvSmall), findsNothing); // tidak lagi Terbuka
+    // Dokumen yang baru disubmit tetap tampil, tetapi pindah ke bagian
+    // Selesai, jadi tidak lagi muncul sebagai dokumen yang perlu diproses.
+    await tester.scrollUntilVisible(find.text(MockDoc.rcvSmall), 200,
+        scrollable: find.byType(Scrollable).last);
+    expect(find.text(MockDoc.rcvSmall), findsOneWidget);
+    expect(find.textContaining('SELESAI'), findsOneWidget);
     expect(backend.balances['BRG-0004'], catBefore + 12);
     expect(backend.movementsByItem['BRG-0004']!.last.transactionNumber,
         trx.number);
@@ -97,10 +102,10 @@ void main() {
 
     // Tandai, batalkan, item kembali Pending dan submit tertahan.
     await markUnavailable(tester, resin);
-    expect(chipIn(resin, 'Partial'), findsOneWidget);
+    expect(chipIn(resin, 'Parsial'), findsOneWidget);
     await tapCard(tester, resin);
     await tapAndSettle(tester, find.text('Batalkan tanda Tidak tersedia'));
-    expect(chipIn(resin, 'Pending'), findsOneWidget);
+    expect(chipIn(resin, 'Belum'), findsOneWidget);
     await openSummary(tester);
     expect(find.textContaining('Masih ada 1 item Pending'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'SIS/DO/2611/1105');
@@ -111,19 +116,23 @@ void main() {
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
 
+    // SnackBar "Masih ada 1 item Pending..." masih tampil beberapa detik
+    // dan bisa menutupi kartu item di bagian bawah layar.
+    await tester.pump(const Duration(seconds: 4));
+
     // Tandai lagi lalu submit sebagai Partial.
     await markUnavailable(tester, resin);
     await openSummary(tester);
     expect(find.text('Tidak tersedia'), findsOneWidget);
     await tapSubmit(tester);
-    expect(find.text('Ada 1 item Partial'), findsOneWidget);
+    expect(find.text('Ada 1 item Parsial'), findsOneWidget);
     await tapAndSettle(
-        tester, find.widgetWithText(OutlinedButton, 'Simpan sebagai Partial'));
+        tester, find.widgetWithText(FilledButton, 'Simpan sebagai Partial'));
     expect(find.text('Dokumen ${MockDoc.rcvSmall} tetap terbuka untuk sisa '
         'barang.'), findsOneWidget);
     await tapAndSettle(tester, find.text('Kembali ke daftar dokumen'));
 
-    expect(find.text('Partial: 2 dari 3 item terpenuhi'), findsOneWidget);
+    expect(find.text('2 dari 3 item terpenuhi'), findsOneWidget);
     expect(backend.balances['BRG-0015'], resinBefore);
     final line = backend.transactions.last.lines
         .firstWhere((l) => l.itemCode == 'BRG-0015');
@@ -150,9 +159,9 @@ void main() {
     await openSummary(tester);
     expect(find.text('Nomor surat jalan vendor'), findsNothing);
     await tapSubmit(tester);
-    expect(find.text('Ada 1 item Partial'), findsOneWidget);
+    expect(find.text('Ada 1 item Parsial'), findsOneWidget);
     await tapAndSettle(
-        tester, find.widgetWithText(FilledButton, 'Tandai Selesai'));
+        tester, find.widgetWithText(OutlinedButton, 'Tandai Selesai'));
     expect(find.text('Dokumen ${MockDoc.intStockLimit} selesai.'),
         findsOneWidget);
     await tapAndSettle(tester, find.text('Kembali ke daftar dokumen'));
@@ -163,7 +172,10 @@ void main() {
     expect(backend.documents[MockDoc.intStockLimit]!.status,
         DocumentStatus.submitted);
     expect(backend.transactions.last.type, DocumentType.intransit);
-    expect(find.text(MockDoc.intStockLimit), findsNothing);
+    // Dokumen kini SUBMITTED dan tetap tampil di bagian Selesai.
+    await tester.scrollUntilVisible(find.text(MockDoc.intStockLimit), 200,
+        scrollable: find.byType(Scrollable).last);
+    expect(find.text(MockDoc.intStockLimit), findsOneWidget);
   });
 
   testWidgets('dokumen sudah diproses operator lain saat submit',
@@ -184,7 +196,10 @@ void main() {
         findsOneWidget);
     await tapAndSettle(tester, find.text('Kembali ke daftar dokumen'));
     expect(find.text('RCV · Receiving'), findsOneWidget);
-    expect(find.text(MockDoc.rcvContested), findsNothing);
+    // Dokumen diselesaikan operator lain, jadi pindah ke bagian Selesai.
+    await tester.scrollUntilVisible(find.text(MockDoc.rcvContested), 200,
+        scrollable: find.byType(Scrollable).last);
+    expect(find.text(MockDoc.rcvContested), findsOneWidget);
     expect(backend.transactions.last.operatorNik, MockNik.rina);
     expect(backend.draftsOf(MockNik.budi)[MockDoc.rcvContested], isNull);
   });

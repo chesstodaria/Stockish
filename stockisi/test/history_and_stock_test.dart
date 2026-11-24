@@ -129,14 +129,14 @@ void main() {
       await tester.tap(tab('Kartu Stok'));
       await tester.pumpAndSettle();
 
-      expect(inStock(find.text('BRG-0001')).hitTestable(), findsOneWidget);
+      expect(inStock(find.textContaining('BRG-0001')).hitTestable(), findsOneWidget);
 
       await tester.enterText(inStock(find.byType(TextField)), 'bearing');
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
-      expect(inStock(find.text('BRG-0012')).hitTestable(), findsOneWidget);
-      expect(inStock(find.text('BRG-0001')).hitTestable(), findsNothing);
+      expect(inStock(find.textContaining('BRG-0012')).hitTestable(), findsOneWidget);
+      expect(inStock(find.textContaining('BRG-0001')).hitTestable(), findsNothing);
     });
 
     testWidgets('pencarian tanpa hasil menampilkan state kosong',
@@ -178,7 +178,7 @@ void main() {
       await tester.tap(tab('Kartu Stok'));
       await tester.pumpAndSettle();
 
-      await tester.tap(inStock(find.text('BRG-0001')).hitTestable());
+      await tester.tap(inStock(find.textContaining('BRG-0001')).hitTestable());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Label QR').hitTestable());
@@ -199,7 +199,7 @@ void main() {
 
       // 1. Ambil isi QR dari layar Label QR.
       await tapAndSettle(tester, navTab('Kartu Stok'));
-      await tapAndSettle(tester, find.text('BRG-0001'));
+      await tapAndSettle(tester, find.textContaining('BRG-0001'));
       await tapAndSettle(tester, find.text('Label QR'));
 
       final payloadFinder = find.textContaining('BRG-0001|');

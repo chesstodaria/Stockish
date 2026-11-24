@@ -8,12 +8,18 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
 import '../../theme/app_text_styles.dart';
 import '../../viewmodels/history_list_view_model.dart';
-import '../../widgets/document_type_badge.dart';
+import '../../widgets/app_header.dart';
+import '../../widgets/app_pill.dart';
+import '../../widgets/pressable.dart';
+import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
+import '../../widgets/type_pill.dart';
 import '../app_routes.dart';
 
-/// Tab Riwayat: Riwayat Transaksi (layar 11). Hanya transaksi SUBMITTED di
-/// gudang operator, terbaru dulu, dengan badge RCV atau INT.
+/// Tab Riwayat: Riwayat Transaksi (layar 11).
+///
+/// Transaksi dikelompokkan per bulan. Pengelompokan ini yang membuat daftar
+/// panjang tetap terbaca tanpa perlu kolom pencarian.
 class HistoryListScreen extends StatelessWidget {
   const HistoryListScreen({super.key});
 
@@ -37,16 +43,24 @@ class _HistoryListView extends StatelessWidget {
       AppRoutes.historyDetail,
       arguments: record.number,
     );
-    // Transaksi baru bisa muncul selama layar detail terbuka.
     await vm.load(silent: true);
   }
 
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<HistoryListViewModel>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Riwayat')),
-      body: _buildBody(context, vm),
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+                AppSpace.screen, AppSpace.md, AppSpace.screen, AppSpace.lg),
+            child: AppHeader(title: 'Riwayat'),
+          ),
+          Expanded(child: _buildBody(context, vm)),
+        ],
+      ),
     );
   }
 
@@ -68,38 +82,61 @@ class _HistoryListView extends StatelessWidget {
     if (records.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => vm.load(silent: true),
-        child: ListView(
-          children: const [
-            SizedBox(height: AppSpace.xxl),
-            EmptyView(
-              icon: Icons.history_rounded,
-              title: 'Belum ada transaksi',
-              message: 'Transaksi yang sudah disubmit akan muncul di sini. '
-                  'Selesaikan satu dokumen di tab Dokumen untuk mencobanya.',
-            ),
-          ],
-        ),
+        child: ListView(children: const [
+          SizedBox(height: AppSpace.xxl),
+          EmptyView(
+            icon: Icons.history_rounded,
+            title: 'Belum ada transaksi',
+            message: 'Transaksi yang sudah disubmit akan muncul di sini. '
+                'Selesaikan satu dokumen di tab Dokumen untuk mencobanya.',
+          ),
+        ]),
       );
+    }
+
+    // Kelompokkan per bulan, urutan tetap terbaru dulu.
+    final groups = <String, List<TransactionRecord>>{};
+    for (final r in records) {
+      groups.putIfAbsent(_monthLabel(r.submittedAt), () => []).add(r);
+    }
+
+    final children = <Widget>[];
+    var first = true;
+    for (final entry in groups.entries) {
+      if (!first) children.add(const SizedBox(height: AppSpace.xl));
+      first = false;
+      children.add(SectionHeader(entry.key, trailing: '${entry.value.length}'));
+      children.add(const SizedBox(height: AppSpace.sm));
+      for (var i = 0; i < entry.value.length; i++) {
+        if (i > 0) children.add(const SizedBox(height: AppSpace.sm + 2));
+        final record = entry.value[i];
+        children.add(_TransactionCard(
+          record: record,
+          onTap: () => _open(context, record),
+        ));
+      }
     }
 
     return RefreshIndicator(
       onRefresh: () => vm.load(silent: true),
-      child: ListView.separated(
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpace.screen,
-          AppSpace.sm,
+          0,
           AppSpace.screen,
           AppSpace.xl,
         ),
-        itemCount: records.length,
-        separatorBuilder: (_, _) => const SizedBox(height: AppSpace.md),
-        itemBuilder: (_, i) => _TransactionCard(
-          record: records[i],
-          onTap: () => _open(context, records[i]),
-        ),
+        children: children,
       ),
     );
   }
+
+  static const _months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+
+  static String _monthLabel(DateTime d) => '${_months[d.month - 1]} ${d.year}';
 }
 
 class _TransactionCard extends StatelessWidget {
@@ -111,89 +148,78 @@ class _TransactionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = record;
+    final accent = TypePill.foreground(r.type);
     final itemCount = r.lines.where((l) => !l.markedUnavailable).length;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+    return Pressable(
+      onTap: onTap,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg - 2),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  DocumentTypeBadge(r.type),
-                  const SizedBox(width: AppSpace.sm),
-                  Expanded(
-                    child: Text(
-                      r.number,
-                      style: AppTextStyles.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              Container(width: 4, color: accent),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.lg,
+                    vertical: AppSpace.md + 2,
                   ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.textSecondary,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(r.number, style: AppTextStyles.title),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: AppColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpace.xs),
+                      Text(r.documentNumber,
+                          style: AppTextStyles.bodySecondary),
+                      const SizedBox(height: AppSpace.xs),
+                      Text(
+                        '${r.type.code}  ·  ${Fmt.dateTime(r.submittedAt)}  ·  '
+                        '$itemCount item',
+                        style: AppTextStyles.code.copyWith(color: accent),
+                      ),
+                      const SizedBox(height: AppSpace.xs),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              r.operatorName,
+                              style: AppTextStyles.code,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (!r.closedDocument)
+                            AppPill(
+                              label: 'Dokumen terbuka',
+                              background: AppColors.partialBg,
+                              foreground: AppColors.partialFg,
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: AppSpace.xs),
-              Text(r.documentNumber, style: AppTextStyles.bodySecondary),
-              const SizedBox(height: AppSpace.xs),
-              Text(
-                '${Fmt.dateTime(r.submittedAt)}  •  $itemCount item',
-                style: AppTextStyles.code,
-              ),
-              const SizedBox(height: AppSpace.xs),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.person_outline_rounded,
-                    size: AppSize.iconSm,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: AppSpace.xs),
-                  Expanded(
-                    child: Text(
-                      r.operatorName,
-                      style: AppTextStyles.bodySecondary,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (!r.closedDocument)
-                    const _OpenDocumentTag(),
-                ],
+                ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Penanda bahwa submit ini hanya menyimpan Partial, jadi dokumennya masih
-/// terbuka untuk sisa barang (CONTEXT 6).
-class _OpenDocumentTag extends StatelessWidget {
-  const _OpenDocumentTag();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpace.sm,
-        vertical: AppSpace.xs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.partialBg,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        'Dokumen masih terbuka',
-        style: AppTextStyles.chip.copyWith(color: AppColors.partialFg),
       ),
     );
   }

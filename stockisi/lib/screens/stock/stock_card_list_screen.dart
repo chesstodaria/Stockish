@@ -8,11 +8,19 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
 import '../../theme/app_text_styles.dart';
 import '../../viewmodels/stock_card_list_view_model.dart';
+import '../../widgets/app_header.dart';
+import '../../widgets/app_search_field.dart';
+import '../../widgets/grouped_list.dart';
+import '../../widgets/pressable.dart';
+import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
 import '../app_routes.dart';
 
-/// Tab Kartu Stok: Daftar Kartu Stok (layar 8). Pencarian nama atau kode
-/// sebagai fokus utama, hanya barang di gudang operator.
+/// Tab Kartu Stok: Daftar Kartu Stok (layar 8).
+///
+/// Data barang seragam dan tidak punya state per baris, jadi dipakai daftar
+/// bergaya *inset grouped* iOS: satu permukaan, pemisah tipis, saldo besar
+/// di kanan.
 class StockCardListScreen extends StatelessWidget {
   const StockCardListScreen({super.key});
 
@@ -49,7 +57,6 @@ class _StockCardListViewState extends State<_StockCardListView> {
       AppRoutes.stockCardDetail,
       arguments: item.itemCode,
     );
-    // Saldo bisa berubah kalau operator submit transaksi di tab lain.
     await vm.load(silent: true);
   }
 
@@ -61,41 +68,35 @@ class _StockCardListViewState extends State<_StockCardListView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<StockCardListViewModel>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Kartu Stok')),
-      body: Column(
+    return SafeArea(
+      bottom: false,
+      child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpace.screen,
-              0,
-              AppSpace.screen,
-              AppSpace.md,
-            ),
-            child: TextField(
-              controller: _search,
-              onChanged: vm.setQuery,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Cari nama atau kode barang',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: vm.query.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Hapus pencarian',
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => _clear(vm),
-                      ),
-              ),
+                AppSpace.screen, AppSpace.md, AppSpace.screen, 0),
+            child: Column(
+              children: [
+                const AppHeader(title: 'Kartu Stok'),
+                const SizedBox(height: AppSpace.lg),
+                AppSearchField(
+                  controller: _search,
+                  hint: 'Cari nama atau kode barang',
+                  onChanged: vm.setQuery,
+                  showClear: vm.query.isNotEmpty,
+                  onClear: () => _clear(vm),
+                ),
+              ],
             ),
           ),
-          Expanded(child: _buildBody(context, vm)),
+          const SizedBox(height: AppSpace.lg),
+          Expanded(child: _buildBody(vm)),
         ],
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, StockCardListViewModel vm) {
+  Widget _buildBody(StockCardListViewModel vm) {
     final items = vm.items;
 
     if (vm.loading && items == null) {
@@ -113,17 +114,15 @@ class _StockCardListViewState extends State<_StockCardListView> {
     if (vm.warehouseEmpty) {
       return RefreshIndicator(
         onRefresh: () => vm.load(silent: true),
-        child: ListView(
-          children: const [
-            SizedBox(height: AppSpace.xxl),
-            EmptyView(
-              icon: Icons.inventory_2_outlined,
-              title: 'Belum ada barang',
-              message: 'Barang untuk gudang Anda akan muncul di sini setelah '
-                  'ada penerimaan barang.',
-            ),
-          ],
-        ),
+        child: ListView(children: const [
+          SizedBox(height: AppSpace.xxl),
+          EmptyView(
+            icon: Icons.inventory_2_outlined,
+            title: 'Belum ada barang',
+            message: 'Barang untuk gudang Anda akan muncul di sini setelah '
+                'ada penerimaan barang.',
+          ),
+        ]),
       );
     }
 
@@ -140,94 +139,71 @@ class _StockCardListViewState extends State<_StockCardListView> {
 
     return RefreshIndicator(
       onRefresh: () => vm.load(silent: true),
-      child: ListView.separated(
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpace.screen,
-          AppSpace.sm,
+          0,
           AppSpace.screen,
           AppSpace.xl,
         ),
-        itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(height: AppSpace.md),
-        itemBuilder: (_, i) => _StockItemCard(
-          item: items[i],
-          onTap: () => _open(items[i]),
-        ),
+        children: [
+          vm.query.trim().isEmpty
+              ? SectionHeader('Barang', trailing: '${items.length}')
+              : SectionHeader('Hasil pencarian', trailing: '${items.length}'),
+          const SizedBox(height: AppSpace.sm),
+          GroupedList(
+            children: [
+              for (final item in items)
+                Pressable(
+                  onTap: () => _open(item),
+                  child: GroupedRow(child: _ItemRow(item: item)),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StockItemCard extends StatelessWidget {
+class _ItemRow extends StatelessWidget {
   final StockItem item;
-  final VoidCallback onTap;
 
-  const _StockItemCard({required this.item, required this.onTap});
+  const _ItemRow({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    final i = item;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.lg),
-          child: Row(
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(i.itemName, style: AppTextStyles.title),
-                    const SizedBox(height: AppSpace.xs),
-                    Text(i.itemCode, style: AppTextStyles.code),
-                    const SizedBox(height: AppSpace.sm),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.place_outlined,
-                          size: AppSize.iconSm,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: AppSpace.xs),
-                        Text(
-                          'Rak ${i.rackNumber}',
-                          style: AppTextStyles.bodySecondary,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpace.md),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    Fmt.qty(i.balance),
-                    style: AppTextStyles.quantity.copyWith(
-                      color: i.balance == 0
-                          ? AppColors.textSecondary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(i.uom, style: AppTextStyles.bodySecondary),
-                ],
-              ),
-              const SizedBox(width: AppSpace.xs),
-              const Padding(
-                padding: EdgeInsets.only(top: AppSpace.xs),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary,
-                ),
+              Text(item.itemName, style: AppTextStyles.bodyStrong),
+              const SizedBox(height: 2),
+              Text(
+                '${item.itemCode}  ·  Rak ${item.rackNumber}',
+                style: AppTextStyles.code,
               ),
             ],
           ),
         ),
-      ),
+        const SizedBox(width: AppSpace.sm),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              Fmt.qty(item.balance),
+              style: AppTextStyles.quantity.copyWith(
+                color: item.balance == 0
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
+              ),
+            ),
+            Text(item.uom, style: AppTextStyles.code),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -7,11 +7,14 @@ import '../services/formatters.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimens.dart';
 import '../theme/app_text_styles.dart';
-import 'item_status_chip.dart';
+import 'app_pill.dart';
+import 'status_chip.dart';
 
-/// Kartu item di Detail Transaksi: target (sisa), jumlah yang sudah
-/// diinput, dan status. Angka ditulis besar supaya terbaca dari jarak
-/// lengan.
+/// Kartu item di Detail Transaksi: nama, kode, status, target dan jumlah
+/// yang sudah diinput.
+///
+/// Angka diinput ditulis besar dan diberi warna status, sehingga mata
+/// langsung menemukan item yang belum lengkap tanpa membaca labelnya.
 class TransactionItemCard extends StatelessWidget {
   final ReferenceDocumentItem item;
   final DraftLine? line;
@@ -30,13 +33,19 @@ class TransactionItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final fulfilled = status == ItemStatus.fulfilled;
     final unavailable = line?.markedUnavailable ?? false;
+    final (_, accent, _) = StatusChip.styleOf(status);
+    final input = unavailable ? null : (line?.quantity ?? 0);
+
     return Card(
       color: fulfilled ? AppColors.surfaceMuted : AppColors.surface,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(AppSpace.lg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.lg,
+            vertical: AppSpace.md + 2,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -44,99 +53,86 @@ class TransactionItemCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(item.itemName, style: AppTextStyles.bodyStrong),
+                    child:
+                        Text(item.itemName, style: AppTextStyles.bodyStrong),
                   ),
-                  const SizedBox(width: AppSpace.sm),
-                  ItemStatusChip(status),
-                ],
-              ),
-              const SizedBox(height: AppSpace.xs),
-              Text('${item.itemCode}  •  Rak ${item.rackNumber}',
-                  style: AppTextStyles.code),
-              if (!fulfilled) ...[
-                const SizedBox(height: AppSpace.md),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: _Figure(
-                        label: 'Target',
-                        value: Fmt.qty(item.remainingQuantity),
-                        uom: item.uom,
+                  if (onTap != null)
+                    const Padding(
+                      padding: EdgeInsets.only(left: AppSpace.sm),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: AppColors.textSecondary,
                       ),
                     ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${item.itemCode}  ·  Rak ${item.rackNumber}  ·  ${item.uom}',
+                style: AppTextStyles.code,
+              ),
+              if (!fulfilled) ...[
+                const SizedBox(height: AppSpace.sm + 2),
+                Row(
+                  children: [
+                    StatusChip(status),
+                    const SizedBox(width: AppSpace.sm),
                     Expanded(
-                      child: unavailable
-                          ? const _Figure(
-                              label: 'Diinput',
-                              value: 'Tidak tersedia',
-                              small: true,
-                            )
-                          : _Figure(
-                              label: 'Diinput',
-                              value: Fmt.qty(line?.quantity ?? 0),
-                              uom: item.uom,
-                            ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: input == null
+                              ? AppPill(
+                                  label: 'Tidak tersedia',
+                                  background: AppColors.pendingBg,
+                                  foreground: AppColors.pendingFg,
+                                )
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Text(
+                                      Fmt.qty(input),
+                                      style: AppTextStyles.title.copyWith(
+                                        color: status == ItemStatus.pending
+                                            ? AppColors.textPrimary
+                                            : accent,
+                                      ),
+                                    ),
+                                    Text(
+                                      ' / ${Fmt.qty(item.remainingQuantity)}',
+                                      style: AppTextStyles.code,
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
                     ),
-                    if (onTap != null)
-                      const Icon(Icons.edit_outlined,
-                          color: AppColors.textSecondary),
                   ],
                 ),
               ],
               if (item.processedQuantity > 0 || item.availableStock != null) ...[
-                const SizedBox(height: AppSpace.sm),
+                const SizedBox(height: AppSpace.xs + 2),
                 Text(
                   [
                     if (item.processedQuantity > 0)
-                      'Dokumen ${Fmt.qty(item.orderedQuantity)}, sudah diproses '
-                          '${Fmt.qty(item.processedQuantity)}',
+                      'Dokumen ${Fmt.qty(item.orderedQuantity)}, sudah '
+                          'diproses ${Fmt.qty(item.processedQuantity)}',
                     if (item.availableStock != null)
                       'Stok ${Fmt.qty(item.availableStock!)} ${item.uom}',
-                  ].join('  •  '),
-                  style: AppTextStyles.bodySecondary,
+                  ].join('  ·  '),
+                  style: AppTextStyles.code,
                 ),
               ],
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _Figure extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? uom;
-  final bool small;
-
-  const _Figure({
-    required this.label,
-    required this.value,
-    this.uom,
-    this.small = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTextStyles.bodySecondary),
-        Text.rich(
-          TextSpan(children: [
-            TextSpan(
-              text: value,
-              style: small
-                  ? AppTextStyles.bodyStrong
-                  : AppTextStyles.quantityLarge,
-            ),
-            if (uom != null)
-              TextSpan(text: ' $uom', style: AppTextStyles.label),
-          ]),
-        ),
-      ],
     );
   }
 }

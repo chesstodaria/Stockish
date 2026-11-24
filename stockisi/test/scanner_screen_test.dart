@@ -14,12 +14,15 @@ void main() {
     await openDocument(tester, MockDoc.rcvNew);
     await tester.tap(find.text('Scan QR'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    // Transisi halaman sekarang memakai CupertinoPageRoute (~500 ms),
+    // jadi tunggu lebih lama daripada MaterialPageRoute sebelumnya.
+    await tester.pump(const Duration(milliseconds: 900));
     expect(tester.takeException(), isNull);
     expect(find.byType(ScannerScreen), findsOneWidget);
     expect(find.text('Scan QR barang'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Input manual'));
+    await tester.tap(
+        find.widgetWithText(OutlinedButton, 'Input manual').hitTestable());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
     expect(find.byType(ScannerScreen), findsNothing);

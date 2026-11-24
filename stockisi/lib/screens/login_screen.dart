@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: AppSpace.xxl * 2),
+        const Spacer(),
         const Align(
           alignment: Alignment.centerLeft,
           child: StockisiWordmark(),
@@ -137,6 +137,20 @@ class _LoginScreenState extends State<LoginScreen> {
           decoration: const InputDecoration(
             labelText: 'NIK',
             prefixIcon: Icon(Icons.badge_outlined),
+            filled: true,
+            fillColor: AppColors.surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+              borderSide: BorderSide(color: AppColors.navy, width: 1.5),
+            ),
           ),
           onChanged: (_) => _clearError(),
           onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
@@ -155,6 +169,20 @@ class _LoginScreenState extends State<LoginScreen> {
           decoration: InputDecoration(
             labelText: 'Kata sandi',
             prefixIcon: const Icon(Icons.lock_outline_rounded),
+            filled: true,
+            fillColor: AppColors.surface,
+            border: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+              borderSide: BorderSide(color: AppColors.navy, width: 1.5),
+            ),
             suffixIcon: IconButton(
               tooltip:
                   _obscure ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi',
@@ -182,7 +210,13 @@ class _LoginScreenState extends State<LoginScreen> {
           loading: _loading,
           onPressed: _submit,
         ),
-        const SizedBox(height: AppSpace.xl),
+        const SizedBox(height: AppSpace.lg),
+        const Text(
+          'Hubungi admin gudang bila akun Anda belum aktif.',
+          style: AppTextStyles.code,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpace.lg),
       ],
     );
   }

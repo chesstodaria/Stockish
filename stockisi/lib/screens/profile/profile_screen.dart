@@ -7,12 +7,16 @@ import '../../services/session_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
 import '../../theme/app_text_styles.dart';
+import '../../widgets/app_header.dart';
+import '../../widgets/grouped_list.dart';
+import '../../widgets/pressable.dart';
+import '../../widgets/section_header.dart';
 
 /// Tab Profil (layar 13): nama, NIK, gudang, dan Logout.
 ///
-/// Sebelum logout, app memeriksa draf. Kalau ada draf yang belum
-/// disubmit, operator diberi tahu di dialog konfirmasi (CONTEXT 7, babak
-/// Keluar). Logout tidak menghapus draf.
+/// Sebelum logout, app memeriksa draf. Kalau ada draf yang belum disubmit,
+/// operator diberi tahu di dialog konfirmasi (CONTEXT 7, babak Keluar).
+/// Logout tidak menghapus draf.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -29,13 +33,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     Set<String>? drafts;
     try {
-      drafts = await context.read<DraftRepository>().getDocumentNumbersWithDraft();
+      drafts =
+          await context.read<DraftRepository>().getDocumentNumbersWithDraft();
     } catch (_) {
       drafts = null; // Tidak bisa diperiksa, tetap boleh logout.
     }
     if (!mounted) return;
-    // Spinner hanya saat memeriksa draf dan saat logout, tidak selama
-    // dialog terbuka.
     setState(() => _busy = false);
 
     final confirmed = await showDialog<bool>(
@@ -53,53 +56,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final operator = context.watch<SessionController>().operator;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
-      body: Column(
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.screen,
+          AppSpace.md,
+          AppSpace.screen,
+          AppSpace.xl,
+        ),
         children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(AppSpace.screen),
+          const AppHeader(title: 'Profil'),
+          const SizedBox(height: AppSpace.lg),
+          if (operator != null) ...[
+            _IdentityCard(operator: operator),
+            const SizedBox(height: AppSpace.xl),
+            const SectionHeader('Akun'),
+            const SizedBox(height: AppSpace.sm),
+            GroupedList(
               children: [
-                if (operator != null) ...[
-                  _Header(operator: operator),
-                  const SizedBox(height: AppSpace.lg),
-                  _InfoCard(operator: operator),
-                ],
+                GroupedRow(child: _InfoRow(
+                  label: 'Gudang',
+                  value: '${operator.warehouseCode} · '
+                      '${operator.warehouseName}',
+                )),
+                GroupedRow(child: _InfoRow(
+                  label: 'Peran',
+                  value: 'Operator gudang',
+                )),
+                GroupedRow(child: _InfoRow(label: 'NIK', value: operator.nik)),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpace.screen, 0, AppSpace.screen, AppSpace.lg),
-            child: SizedBox(
-              width: double.infinity,
-              height: AppSize.primaryButton,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: const BorderSide(color: AppColors.error, width: 1.5),
-                ),
-                onPressed: _busy ? null : _logout,
-                icon: _busy
-                    ? const SizedBox.square(
-                        dimension: AppSize.iconSm,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.logout_rounded),
-                label: const Text('Logout'),
-              ),
+            const SizedBox(height: AppSpace.xl),
+            _LogoutButton(busy: _busy, onPressed: _logout),
+            const SizedBox(height: AppSpace.lg),
+            Text(
+              'Draf yang belum disubmit akan diberitahukan sebelum keluar.',
+              style: AppTextStyles.code,
+              textAlign: TextAlign.center,
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
+class _IdentityCard extends StatelessWidget {
   final OperatorProfile operator;
-  const _Header({required this.operator});
+
+  const _IdentityCard({required this.operator});
 
   String get _initials {
     final parts = operator.name.trim().split(RegExp(r'\s+'));
@@ -108,52 +114,40 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 32,
-          backgroundColor: AppColors.navy,
-          child: Text(
-            _initials,
-            style: AppTextStyles.title.copyWith(color: AppColors.onNavy),
-          ),
-        ),
-        const SizedBox(width: AppSpace.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(operator.name, style: AppTextStyles.headline),
-              const SizedBox(height: AppSpace.xs),
-              const Text('Operator gudang', style: AppTextStyles.bodySecondary),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  final OperatorProfile operator;
-  const _InfoCard({required this.operator});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Column(
+    return Container(
+      padding: const EdgeInsets.all(AppSpace.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg - 2),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
         children: [
-          _InfoRow(
-            icon: Icons.badge_outlined,
-            label: 'NIK',
-            value: operator.nik,
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.navy,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              _initials,
+              style: AppTextStyles.bodyStrong.copyWith(
+                color: AppColors.onNavy,
+              ),
+            ),
           ),
-          const Divider(indent: AppSpace.lg, endIndent: AppSpace.lg),
-          _InfoRow(
-            icon: Icons.warehouse_outlined,
-            label: 'Gudang',
-            value: operator.warehouseName,
-            detail: 'Kode ${operator.warehouseCode}',
+          const SizedBox(width: AppSpace.md + 2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(operator.name, style: AppTextStyles.title),
+                const SizedBox(height: 2),
+                Text('NIK ${operator.nik}', style: AppTextStyles.code),
+              ],
+            ),
           ),
         ],
       ),
@@ -162,40 +156,58 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  final IconData icon;
   final String label;
   final String value;
-  final String? detail;
 
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.detail,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpace.lg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.textSecondary),
-          const SizedBox(width: AppSpace.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: AppTextStyles.bodySecondary),
-                const SizedBox(height: 2),
-                Text(value, style: AppTextStyles.bodyStrong),
-                if (detail != null)
-                  Text(detail!, style: AppTextStyles.bodySecondary),
-              ],
-            ),
+    return Row(
+      children: [
+        Text(label, style: AppTextStyles.bodySecondary),
+        const SizedBox(width: AppSpace.md),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTextStyles.bodyStrong,
+            textAlign: TextAlign.right,
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  final bool busy;
+  final VoidCallback onPressed;
+
+  const _LogoutButton({required this.busy, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: busy ? null : onPressed,
+      child: Container(
+        height: AppSize.primaryButton,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg - 2),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: busy
+            ? const SizedBox.square(
+                dimension: AppSize.iconSm,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                'Logout',
+                style: AppTextStyles.button.copyWith(
+                  color: AppColors.errorFg,
+                ),
+              ),
       ),
     );
   }

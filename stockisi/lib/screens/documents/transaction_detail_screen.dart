@@ -248,15 +248,31 @@ class _DetailViewState extends State<_DetailView> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Row(
+          toolbarHeight: 64,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
-                child: Text(vm.documentNumber, overflow: TextOverflow.ellipsis),
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      vm.documentNumber,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (ready) ...[
+                    const SizedBox(width: AppSpace.sm),
+                    DocumentTypeBadge(vm.document.type),
+                  ],
+                ],
               ),
-              if (ready) ...[
-                const SizedBox(width: AppSpace.sm),
-                DocumentTypeBadge(vm.document.type),
-              ],
+              if (ready)
+                Text(
+                  vm.document.counterparty,
+                  style: AppTextStyles.code,
+                  overflow: TextOverflow.ellipsis,
+                ),
             ],
           ),
         ),
@@ -377,9 +393,9 @@ class _ProgressHeader extends StatelessWidget {
           const SizedBox(height: AppSpace.sm),
           Text(
             [
-              'Pending ${vm.countOf(ItemStatus.pending)}',
-              'Partial ${vm.countOf(ItemStatus.partial)}',
-              'Complete ${vm.countOf(ItemStatus.complete)}',
+              'Belum ${vm.countOf(ItemStatus.pending)}',
+              'Parsial ${vm.countOf(ItemStatus.partial)}',
+              'Selesai ${vm.countOf(ItemStatus.complete)}',
               if (fulfilled > 0) 'Sudah terpenuhi $fulfilled',
             ].join('  •  '),
             style: AppTextStyles.bodySecondary,

@@ -27,7 +27,14 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _tabs),
+      // `StackFit.expand` wajib: tab sekarang berupa konten murni tanpa
+      // Scaffold sendiri, jadi tiap tab harus diberi tinggi terbatas agar
+      // `Expanded` di dalamnya punya ruang.
+      body: IndexedStack(
+        index: _index,
+        sizing: StackFit.expand,
+        children: _tabs,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),

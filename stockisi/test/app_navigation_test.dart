@@ -37,7 +37,7 @@ void main() {
 
     await tester.tap(tab('Kartu Stok'));
     await tester.pumpAndSettle();
-    expect(find.text('BRG-0001').hitTestable(), findsOneWidget);
+    expect(find.textContaining('BRG-0001').hitTestable(), findsOneWidget);
 
     await tester.tap(tab('Riwayat'));
     await tester.pumpAndSettle();
@@ -61,7 +61,7 @@ void main() {
 
     await tester.tap(tab('Kartu Stok'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('BRG-0001').hitTestable());
+    await tester.tap(find.textContaining('BRG-0001').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('Riwayat mutasi').hitTestable(), findsOneWidget);
 

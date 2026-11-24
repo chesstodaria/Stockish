@@ -17,6 +17,11 @@ abstract final class AppColors {
   static const surfaceMuted = Color(0xFFF1EEE7);
   static const border = Color(0xFFE2DDD2);
 
+  /// Turunan navy untuk indikator tab yang aktif. `surfaceMuted` di atas
+  /// `surface` hanya punya kontras ~1,09:1 sehingga tab aktif tidak
+  /// terlihat; nilai ini menaikkannya tanpa menambah warna baru.
+  static const navIndicator = Color(0xFFE8EAEF);
+
   static const textPrimary = navy;
   static const textSecondary = Color(0xFF4A536B);
 
