@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../../data/repositories/document_claim_repository.dart';
+import '../../models/document_claim.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/repositories/draft_repository.dart';
@@ -55,7 +60,25 @@ class _DetailView extends StatefulWidget {
 
 class _DetailViewState extends State<_DetailView> {
   late final TransactionViewModel _vm = context.read<TransactionViewModel>();
+  DocumentClaimRepository? _claims;
+  bool _holdsClaim = false;
   bool _leaving = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _claims ??= context.read<DocumentClaimRepository>();
+  }
+
+  @override
+  void dispose() {
+    // Kunci dilepas saat layar ditinggal. Kalau app ditutup paksa, klaim
+    // akan kedaluwarsa sendiri setelah 5 menit.
+    if (_holdsClaim) {
+      unawaited(_claims?.release(_vm.documentNumber) ?? Future.value());
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -82,12 +105,62 @@ class _DetailViewState extends State<_DetailView> {
               'dibuang.',
         );
       case TransactionLoadState.ready:
+        if (!await _ensureClaim()) return;
+        if (!mounted) return;
         if (_vm.resumedFromDraft) {
           _snack('Melanjutkan draf ${_vm.documentNumber}.');
         }
       default:
         break;
     }
+  }
+
+  /// Mengambil klaim dokumen sebelum operator mulai menginput.
+  ///
+  /// Mengembalikan false kalau dokumen sedang dipegang operator lain; layar
+  /// sudah ditutup dan pemanggil harus berhenti.
+  Future<bool> _ensureClaim() async {
+    final repo = _claims;
+    if (repo == null) return true;
+    if (_holdsClaim) return true;
+
+    final outcome = await repo.claim(_vm.documentNumber);
+    if (!mounted) return false;
+    if (outcome.granted) {
+      _holdsClaim = true;
+      return true;
+    }
+
+    final claim = outcome.claim;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Dokumen sedang diproses'),
+        content: Text(
+          '${claim?.holderName ?? 'Operator lain'} sedang mengerjakan '
+          '${_vm.documentNumber}. Coba lagi dalam '
+          '${_remainingLabel(claim)}.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Kembali ke daftar'),
+          ),
+        ],
+      ),
+    );
+    if (mounted) Navigator.of(context).pop();
+    return false;
+  }
+
+  static String _remainingLabel(DocumentClaim? claim) {
+    if (claim == null) return 'beberapa saat';
+    final left = claim.remainingAt(DateTime.now());
+    final minutes = left.inMinutes;
+    if (minutes >= 1) return '$minutes menit';
+    final seconds = left.inSeconds;
+    return seconds <= 0 ? 'beberapa saat' : '$seconds detik';
   }
 
   Future<void> _showExitNotice(String title, String message) async {

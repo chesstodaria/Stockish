@@ -323,7 +323,10 @@ class MockBackend {
   }
 
   void releaseDocument(String documentNumber) {
-    final operator = requireOperator();
+    // Kalau sesi sudah berakhir (misalnya karena logout), klaim dibiarkan
+    // kedaluwarsa sendiri daripada melempar pengecualian dari `dispose`.
+    final operator = currentOperator;
+    if (operator == null) return;
     final claim = claims[documentNumber];
     if (claim == null || claim.holderNik != operator.nik) return;
     claims.remove(documentNumber);

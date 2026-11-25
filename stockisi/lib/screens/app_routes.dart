@@ -8,6 +8,7 @@ import '../viewmodels/transaction_view_model.dart';
 import 'history/history_detail_screen.dart';
 import 'home_shell.dart';
 import 'login_screen.dart';
+import 'profile/activity_screen.dart';
 import 'session_guard.dart';
 import 'splash_screen.dart';
 import 'stock/qr_label_screen.dart';
@@ -30,6 +31,7 @@ abstract final class AppRoutes {
   static const stockCardDetail = '/kartu-stok/detail';
   static const qrLabel = '/kartu-stok/label-qr';
   static const historyDetail = '/riwayat/detail';
+  static const activity = '/profil/aktivitas';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final arg = settings.arguments;
@@ -56,6 +58,8 @@ abstract final class AppRoutes {
         protected = QrLabelScreen(itemCode: text);
       case historyDetail when text != null:
         protected = HistoryDetailScreen(transactionNumber: text);
+      case activity:
+        protected = const ActivityScreen();
     }
 
     final Widget page = public ??

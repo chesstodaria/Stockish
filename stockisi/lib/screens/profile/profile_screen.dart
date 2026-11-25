@@ -11,6 +11,7 @@ import '../../widgets/app_header.dart';
 import '../../widgets/grouped_list.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/section_header.dart';
+import '../app_routes.dart';
 
 /// Tab Profil (layar 13): nama, NIK, gudang, dan Logout.
 ///
@@ -86,6 +87,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 )),
                 GroupedRow(child: _InfoRow(label: 'NIK', value: operator.nik)),
               ],
+            ),
+            const SizedBox(height: AppSpace.xl),
+            Pressable(
+              onTap: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.activity),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.lg,
+                  vertical: AppSpace.md + 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg - 2),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Aktivitas',
+                              style: AppTextStyles.bodyStrong),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Jejak masuk, kunci dokumen, dan submit',
+                            style: AppTextStyles.code,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: AppSpace.xl),
             _LogoutButton(busy: _busy, onPressed: _logout),
