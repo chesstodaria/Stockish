@@ -256,6 +256,7 @@ class MockBackend {
       entityId: number,
       summary: 'Submit ${doc.type.code} ${doc.number}: ${txLines.length} item, '
           '${closes ? 'dokumen ditutup' : 'dokumen tetap terbuka'}',
+      at: at,
     );
     draftsOf(operator.nik).remove(doc.number);
     return record;
@@ -272,9 +273,10 @@ class MockBackend {
     required String entity,
     String? entityId,
     required String summary,
+    DateTime? at,
   }) {
     auditEvents.add(AuditEvent(
-      at: DateTime.now(),
+      at: at ?? DateTime.now(),
       actorNik: nik,
       action: action,
       entity: entity,

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stockisi/app.dart';
+import 'package:stockisi/services/device_id_store.dart';
 import 'package:stockisi/data/mock/mock_repositories.dart';
 import 'package:stockisi/data/mock/mock_seed.dart';
 
 Future<void> enterHome(WidgetTester tester) async {
   final backend = createSeededBackend(latency: Duration.zero);
   await tester.pumpWidget(
-      StockisiApp(repositories: createMockRepositories(backend)));
+      StockisiApp(repositories: createMockRepositories(backend), deviceIds: DeviceIdStore.fixed('test-device')));
   await tester.pumpAndSettle();
   await tester.enterText(
       find.widgetWithText(TextFormField, 'NIK'), MockNik.budi);

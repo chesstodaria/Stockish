@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../data/repositories/repositories.dart';
 import '../data/repository_exceptions.dart';
+import '../services/connectivity_status.dart';
+import '../services/device_id_store.dart';
 import '../services/session_controller.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimens.dart';
@@ -60,6 +63,47 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await context.read<SessionController>().login(_nik.text, _password.text);
       if (!mounted) return;
+      context.read<ConnectivityStatus>().reportOnline();
+
+      // Satu NIK hanya boleh aktif di satu perangkat.
+      final devices = context.read<SessionDeviceRepository>();
+      final deviceId = await context.read<DeviceIdStore>().read();
+      final nik = _nik.text.trim();
+      final registered = await devices.register(nik, deviceId);
+      if (!mounted) return;
+      if (!registered) {
+        final force = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Akun sedang dipakai'),
+            content: const Text(
+              'NIK ini sedang aktif di perangkat lain. Kalau Anda '
+              'melanjutkan, sesi di perangkat itu akan berakhir.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Batal'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Gunakan di sini'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        if (force != true) {
+          await context.read<SessionController>().logout();
+          if (!mounted) return;
+          setState(() => _loading = false);
+          return;
+        }
+        await devices.register(nik, deviceId, force: true);
+        if (!mounted) return;
+      }
+
       Navigator.of(context)
           .pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
     } on AuthException catch (e) {
@@ -77,6 +121,9 @@ class _LoginScreenState extends State<LoginScreen> {
           .addPostFrameCallback((_) => _passwordFocus.requestFocus());
     } on RepositoryException catch (e) {
       if (!mounted) return;
+      if (e is DataUnavailableException) {
+        context.read<ConnectivityStatus>().reportOffline();
+      }
       setState(() {
         _loading = false;
         _error = e.message;

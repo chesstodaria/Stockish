@@ -5,6 +5,7 @@ import 'package:stockisi/data/mock/mock_backend.dart';
 import 'package:stockisi/data/mock/mock_repositories.dart';
 import 'package:stockisi/data/mock/mock_seed.dart';
 import 'package:stockisi/screens/documents/scanner_screen.dart';
+import 'package:stockisi/services/device_id_store.dart';
 import 'package:stockisi/services/scan_launcher.dart';
 import 'package:stockisi/services/session_store.dart';
 
@@ -51,6 +52,7 @@ Future<MockBackend> pumpSignedIn(
     scanLauncher: realScanner
         ? launchCameraScanner
         : (scanner?.call ?? FakeScanner().call),
+    deviceIds: DeviceIdStore.fixed('test-device'),
   ));
   await tester.pumpAndSettle();
   return backend;

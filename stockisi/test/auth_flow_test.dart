@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stockisi/app.dart';
+import 'package:stockisi/services/device_id_store.dart';
 import 'package:stockisi/data/mock/mock_backend.dart';
 import 'package:stockisi/data/mock/mock_repositories.dart';
 import 'package:stockisi/data/mock/mock_seed.dart';
@@ -19,6 +20,7 @@ Future<MockBackend> openApp(
   await tester.pumpWidget(StockisiApp(
     key: UniqueKey(),
     repositories: createMockRepositories(backend, sessionStore: store),
+    deviceIds: DeviceIdStore.fixed('test-device'),
   ));
   await tester.pumpAndSettle();
   return backend;
