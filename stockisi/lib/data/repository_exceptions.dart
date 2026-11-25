@@ -70,10 +70,16 @@ class SubmitException extends RepositoryException {
   final SubmitFailure failure;
   final SubmitCheck? check;
 
-  const SubmitException(this.failure, {this.check});
+  /// Pesan dari server (misalnya dari RPC Supabase). Kalau diisi, pesan ini
+  /// yang dipakai, supaya teks aturan bisnis tidak perlu diduplikasi di dua
+  /// tempat.
+  final String? serverMessage;
+
+  const SubmitException(this.failure, {this.check, this.serverMessage});
 
   @override
   String get message {
+    if (serverMessage != null) return serverMessage!;
     switch (failure) {
       case SubmitFailure.rulesNotMet:
         return check?.message ?? 'Transaksi belum bisa disubmit.';
