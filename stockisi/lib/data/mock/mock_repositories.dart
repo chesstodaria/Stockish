@@ -8,6 +8,7 @@ import '../../models/transaction_record.dart';
 import '../../services/session_store.dart';
 import '../repositories/repositories.dart';
 import '../repository_exceptions.dart';
+import 'mock_audit_claims.dart';
 import 'mock_backend.dart';
 
 /// Implementasi tiruan semua kontrak repository di atas [MockBackend].
@@ -23,6 +24,9 @@ Repositories createMockRepositories(
     drafts: MockDraftRepository(backend),
     transactions: MockTransactionRepository(backend),
     stockCard: MockStockCardRepository(backend),
+    audit: MockAuditRepository(backend),
+    claims: MockDocumentClaimRepository(backend),
+    sessionDevices: MockSessionDeviceRepository(backend),
   );
 }
 
@@ -44,6 +48,12 @@ class MockAuthRepository implements AuthRepository {
     }
     await _session.writeNik(account.profile.nik);
     _b.currentOperator = account.profile;
+    _b.recordAudit(
+      nik: account.profile.nik,
+      action: 'login',
+      entity: 'session',
+      summary: 'Masuk aplikasi dari ${account.profile.warehouseCode}',
+    );
     return account.profile;
   }
 
@@ -65,6 +75,15 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     await _b.delay(0.5);
+    final operator = _b.currentOperator;
+    if (operator != null) {
+      _b.recordAudit(
+        nik: operator.nik,
+        action: 'logout',
+        entity: 'session',
+        summary: 'Keluar aplikasi',
+      );
+    }
     await _session.clear();
     _b.currentOperator = null;
   }

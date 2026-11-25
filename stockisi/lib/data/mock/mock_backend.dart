@@ -1,3 +1,5 @@
+import '../../models/audit_event.dart';
+import '../../models/document_claim.dart';
 import '../../models/document_type.dart';
 import '../../models/draft.dart';
 import '../../models/operator_profile.dart';
@@ -76,6 +78,16 @@ class MockBackend {
   final Map<String, int> balances = {};
   final Map<String, List<StockMovement>> movementsByItem = {};
   final List<TransactionRecord> transactions = [];
+
+  /// Jejak aktivitas, urut waktu. Di Supabase ditulis trigger dan RPC,
+  /// sehingga aplikasi hanya bisa membacanya.
+  final List<AuditEvent> auditEvents = [];
+
+  /// Klaim dokumen per nomor. Klaim kedaluwarsa dibersihkan saat dibaca.
+  final Map<String, DocumentClaim> claims = {};
+
+  /// Perangkat pemegang sesi per NIK.
+  final Map<String, String> sessionDevices = {};
 
   /// Draf per NIK, lalu per nomor dokumen (mensimulasikan draf di perangkat).
   final Map<String, Map<String, Draft>> draftsByNik = {};
@@ -237,8 +249,122 @@ class MockBackend {
       lines: txLines,
     );
     transactions.add(record);
+    recordAudit(
+      nik: operator.nik,
+      action: 'submit',
+      entity: 'transaction',
+      entityId: number,
+      summary: 'Submit ${doc.type.code} ${doc.number}: ${txLines.length} item, '
+          '${closes ? 'dokumen ditutup' : 'dokumen tetap terbuka'}',
+    );
     draftsOf(operator.nik).remove(doc.number);
     return record;
+  }
+
+  // ----------------------------------------------------------------- audit
+  /// Masa berlaku klaim dokumen. Di Supabase dijaga juga oleh `pg_cron`
+  /// yang membersihkan klaim kedaluwarsa.
+  static const claimTtl = Duration(minutes: 5);
+
+  void recordAudit({
+    required String nik,
+    required String action,
+    required String entity,
+    String? entityId,
+    required String summary,
+  }) {
+    auditEvents.add(AuditEvent(
+      at: DateTime.now(),
+      actorNik: nik,
+      action: action,
+      entity: entity,
+      entityId: entityId,
+      summary: summary,
+    ));
+  }
+
+  // ----------------------------------------------------------------- klaim
+  /// Klaim aktif untuk satu dokumen, atau null kalau bebas atau kedaluwarsa.
+  DocumentClaim? activeClaimOf(String documentNumber) {
+    final claim = claims[documentNumber];
+    if (claim == null) return null;
+    if (claim.isExpiredAt(DateTime.now())) {
+      claims.remove(documentNumber);
+      return null;
+    }
+    return claim;
+  }
+
+  ClaimOutcome claimDocument(String documentNumber) {
+    final operator = requireOperator();
+    final existing = activeClaimOf(documentNumber);
+    if (existing != null && existing.holderNik != operator.nik) {
+      return ClaimOutcome(granted: false, claim: existing);
+    }
+    final now = DateTime.now();
+    final claim = DocumentClaim(
+      documentNumber: documentNumber,
+      holderNik: operator.nik,
+      holderName: operator.name,
+      claimedAt: existing?.claimedAt ?? now,
+      expiresAt: now.add(claimTtl),
+    );
+    claims[documentNumber] = claim;
+    if (existing == null) {
+      recordAudit(
+        nik: operator.nik,
+        action: 'claim',
+        entity: 'reference_document',
+        entityId: documentNumber,
+        summary: 'Membuka dan mengunci $documentNumber',
+      );
+    }
+    return ClaimOutcome(granted: true, claim: claim);
+  }
+
+  void releaseDocument(String documentNumber) {
+    final operator = requireOperator();
+    final claim = claims[documentNumber];
+    if (claim == null || claim.holderNik != operator.nik) return;
+    claims.remove(documentNumber);
+    recordAudit(
+      nik: operator.nik,
+      action: 'release',
+      entity: 'reference_document',
+      entityId: documentNumber,
+      summary: 'Melepas kunci $documentNumber',
+    );
+  }
+
+  /// Klaim aktif milik operator lain di gudang yang sama.
+  List<DocumentClaim> activeClaims() {
+    final operator = requireOperator();
+    final result = <DocumentClaim>[];
+    for (final number in [...claims.keys]) {
+      final claim = activeClaimOf(number);
+      if (claim != null && claim.holderNik != operator.nik) result.add(claim);
+    }
+    return result;
+  }
+
+  // ------------------------------------------------------------------ sesi
+  bool registerDevice(String nik, String deviceId, {bool force = false}) {
+    final current = sessionDevices[nik];
+    if (current != null && current != deviceId) {
+      if (!force) return false;
+      recordAudit(
+        nik: nik,
+        action: 'force_session',
+        entity: 'session',
+        summary: 'Sesi dipindahkan ke perangkat lain',
+      );
+    }
+    sessionDevices[nik] = deviceId;
+    return true;
+  }
+
+  void unregisterDevice(String nik, String deviceId) {
+    if (sessionDevices[nik] == deviceId) sessionDevices.remove(nik);
   }
 
   static String _yymmdd(DateTime d) {

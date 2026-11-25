@@ -1,12 +1,18 @@
 import 'auth_repository.dart';
+import 'audit_repository.dart';
+import 'document_claim_repository.dart';
 import 'draft_repository.dart';
 import 'reference_document_repository.dart';
+import 'session_device_repository.dart';
 import 'stock_card_repository.dart';
 import 'transaction_repository.dart';
 
 export 'auth_repository.dart';
+export 'audit_repository.dart';
+export 'document_claim_repository.dart';
 export 'draft_repository.dart';
 export 'reference_document_repository.dart';
+export 'session_device_repository.dart';
 export 'stock_card_repository.dart';
 export 'transaction_repository.dart';
 
@@ -19,6 +25,9 @@ class Repositories {
   final DraftRepository drafts;
   final TransactionRepository transactions;
   final StockCardRepository stockCard;
+  final AuditRepository audit;
+  final DocumentClaimRepository claims;
+  final SessionDeviceRepository sessionDevices;
 
   const Repositories({
     required this.auth,
@@ -26,5 +35,8 @@ class Repositories {
     required this.drafts,
     required this.transactions,
     required this.stockCard,
+    required this.audit,
+    required this.claims,
+    required this.sessionDevices,
   });
 }

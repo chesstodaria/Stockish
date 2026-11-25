@@ -34,6 +34,10 @@ class StockisiApp extends StatelessWidget {
         Provider<TransactionRepository>.value(
             value: repositories.transactions),
         Provider<StockCardRepository>.value(value: repositories.stockCard),
+        Provider<AuditRepository>.value(value: repositories.audit),
+        Provider<DocumentClaimRepository>.value(value: repositories.claims),
+        Provider<SessionDeviceRepository>.value(
+            value: repositories.sessionDevices),
         ChangeNotifierProvider(
             create: (_) => SessionController(repositories.auth)),
         Provider<ScanLauncher>.value(value: scanLauncher),
